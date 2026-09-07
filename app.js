@@ -1,19 +1,7 @@
-// 11 Colores perfectamente diferenciados para las tablas 0 a 10
 const TABLE_COLORS = [
-    '#E74C3C', // 0: Rojo
-    '#2ECC71', // 1: Verde
-    '#3498DB', // 2: Azul
-    '#E67E22', // 3: Naranja
-    '#9B59B6', // 4: Morado
-    '#F1C40F', // 5: Amarillo
-    '#E84393', // 6: Rosa
-    '#00CEC9', // 7: Turquesa
-    '#D63031', // 8: Rojo Oscuro
-    '#00B894', // 9: Menta
-    '#6C5CE7'  // 10: Violeta
+    '#E74C3C', '#2ECC71', '#3498DB', '#E67E22', '#9B59B6',
+    '#F1C40F', '#E84393', '#00CEC9', '#D63031', '#00B894', '#6C5CE7'
 ];
-
-const DEFAULT_BG = '#eef5fc';
 
 let selectedStudyTable = 1;
 let selectedPracticeTables = [];
@@ -23,7 +11,9 @@ let currentDeck = [];
 let currentCardIndex = 0;
 let timerInterval = null;
 let timeLeft = 0;
+
 let recognition = null;
+let audioCtx = null;
 
 let matchHistory = [];
 let failedCards = [];
@@ -31,10 +21,8 @@ let failedCards = [];
 document.addEventListener('DOMContentLoaded', () => {
     initStudySection();
     initGameSetupSection();
-    initSpeechRecognition();
 });
 
-// Cambiar de sección principal
 function switchSection(sectionId) {
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.btn-nav').forEach(b => b.classList.remove('active'));
@@ -44,21 +32,13 @@ function switchSection(sectionId) {
     if (sectionId === 'learn') {
         document.getElementById('nav-learn').classList.add('active');
         showLearnStep('selector');
-    } else {
-        setBgColor(DEFAULT_BG);
-    }
-    
-    if (sectionId === 'game-setup') {
+    } else if (sectionId === 'game-setup') {
         document.getElementById('nav-game').classList.add('active');
     }
 }
 
-function setBgColor(color) {
-    document.getElementById('app-body').style.backgroundColor = color;
-}
-
 /* ==========================================
-   1. ESTUDIAR TABLAS (3 VISTAS)
+   1. ESTUDIAR TABLAS
    ========================================== */
 function initStudySection() {
     const navContainer = document.getElementById('learn-buttons');
@@ -85,13 +65,10 @@ function showLearnStep(step) {
 
     if (step === 'selector') {
         document.getElementById('learn-step-selector').classList.add('active');
-        setBgColor(DEFAULT_BG);
     } else if (step === 'complete') {
         document.getElementById('learn-step-complete').classList.add('active');
-        setBgColor(TABLE_COLORS[selectedStudyTable]);
     } else if (step === 'practice') {
         document.getElementById('learn-step-practice').classList.add('active');
-        setBgColor(TABLE_COLORS[selectedStudyTable]);
     }
 }
 
@@ -101,6 +78,10 @@ function renderStudyContent(num) {
 
     document.getElementById('complete-title').innerText = `Tabla del ${num}`;
     document.getElementById('practice-title').innerText = `Pruébate: Tabla del ${num}`;
+
+    // Aplicar el color de la tabla al borde del contenedor interno
+    document.getElementById('card-complete-container').style.borderColor = TABLE_COLORS[num];
+    document.getElementById('card-practice-container').style.borderColor = TABLE_COLORS[num];
 
     listComplete.innerHTML = '';
     listPractice.innerHTML = '';
@@ -125,7 +106,7 @@ function togglePracticeAnswers() {
 }
 
 /* ==========================================
-   2. CONFIGURACIÓN DEL MODO REPASO
+   2. CONFIGURACIÓN REPASO
    ========================================== */
 function initGameSetupSection() {
     const container = document.getElementById('tables-selection');
@@ -148,7 +129,7 @@ function toggleTableSelection(checkbox, num) {
     if (checkbox.checked) {
         if (selectedPracticeTables.length >= 3) {
             checkbox.checked = false;
-            alert('Puedes seleccionar como máximo 3 tablas.');
+            alert('Puedes seleccionar un máximo de 3 tablas.');
             return;
         }
         selectedPracticeTables.push(num);
@@ -160,13 +141,25 @@ function toggleTableSelection(checkbox, num) {
 }
 
 /* ==========================================
-   3. JUEGO / GAMEPLAY
+   3. JUEGO Y CONTROL DE VOZ / AUDIO
    ========================================== */
+function initAudio() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+}
+
 function startGame() {
     if (selectedPracticeTables.length === 0) {
         alert('Selecciona al menos 1 tabla para repasar.');
         return;
     }
+
+    // Inicializar audio en la interacción táctil
+    initAudio();
 
     difficultyTime = parseInt(document.querySelector('input[name="difficulty"]:checked').value);
     
@@ -194,26 +187,22 @@ function loadCard() {
     }
 
     const cardData = currentDeck[currentCardIndex];
-    
-    // Cambiar color de fondo dinámicamente según la tabla que sale
-    setBgColor(TABLE_COLORS[cardData.table]);
 
-    // Resetear UI de la Ficha
+    // Resetear Ficha 3D y aplicar color a la ficha
     document.getElementById('flashcard').classList.remove('flipped');
     document.getElementById('user-input').value = '';
     document.getElementById('current-index').innerText = currentCardIndex + 1;
     document.getElementById('total-cards').innerText = currentDeck.length;
     
     document.getElementById('card-question').innerText = `${cardData.num1} x ${cardData.num2}`;
-    
-    // Estado de los botones de acción
+    document.getElementById('card-front-element').style.backgroundColor = TABLE_COLORS[cardData.table];
+
     document.getElementById('btn-submit').disabled = true;
     document.getElementById('btn-next').disabled = true;
 
-    // Reproducir voz de la operación
+    // Reproducir voz
     speakText(`${cardData.num1} por ${cardData.num2}`);
 
-    // Iniciar Tiempo y Micro
     startTimer();
     startListening();
 }
@@ -228,7 +217,7 @@ function startTimer() {
         document.getElementById('timer-display').innerText = timeLeft;
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
-            submitAnswer(true); // Tiempo agotado
+            submitAnswer(true);
         }
     }, 1000);
 }
@@ -247,7 +236,7 @@ function clearInput() {
 }
 
 function submitAnswer(isTimeout = false) {
-    clearInterval(timerInterval);
+    if (timerInterval) clearInterval(timerInterval);
     timerInterval = null;
     stopListening();
 
@@ -256,21 +245,20 @@ function submitAnswer(isTimeout = false) {
     const userAnswer = isTimeout ? null : parseInt(inputVal);
     const isCorrect = (userAnswer === cardData.answer);
 
-    // Registrar en histórico
     matchHistory.push({ ...cardData, userAnswer, isCorrect });
     if (!isCorrect) failedCards.push(cardData);
 
-    // Girar Ficha y mostrar respuesta
+    // Girar Ficha
     const flashcard = document.getElementById('flashcard');
     document.getElementById('card-answer').innerText = cardData.answer;
     document.getElementById('card-feedback-text').innerText = isCorrect ? "¡Correcto! 🎉" : "¡Vaya! 😅";
-    document.querySelector('.card-back').style.backgroundColor = isCorrect ? '#2ecc71' : '#e74c3c';
+    document.getElementById('card-back-element').style.backgroundColor = isCorrect ? '#2ecc71' : '#e74c3c';
+    
     flashcard.classList.add('flipped');
 
-    // Sonido
+    // Reproducir Tono de Acierto / Fallo
     playAudioFeedback(isCorrect);
 
-    // Ajuste de botones
     document.getElementById('btn-submit').disabled = true;
     document.getElementById('btn-next').disabled = false;
 }
@@ -281,7 +269,7 @@ function nextCard() {
 }
 
 /* ==========================================
-   4. VOZ Y AUDIO
+   4. SÍNTESIS Y RECONOCIMIENTO DE VOZ
    ========================================== */
 function speakText(text) {
     if ('speechSynthesis' in window) {
@@ -293,9 +281,14 @@ function speakText(text) {
     }
 }
 
-function initSpeechRecognition() {
+function startListening() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
+    if (!SpeechRecognition) {
+        document.getElementById('mic-status').innerText = '🎙️ Teclado táctil';
+        return;
+    }
+
+    if (!recognition) {
         recognition = new SpeechRecognition();
         recognition.lang = 'es-ES';
         recognition.continuous = false;
@@ -314,18 +307,12 @@ function initSpeechRecognition() {
         recognition.onerror = () => {
             document.getElementById('mic-status').innerText = '🎙️ Usa el teclado';
         };
-    } else {
-        document.getElementById('mic-status').innerText = '🎙️ Teclado en pantalla';
     }
-}
 
-function startListening() {
-    if (recognition) {
-        try {
-            recognition.start();
-            document.getElementById('mic-status').innerText = '🎙️ Escuchando...';
-        } catch (e) {}
-    }
+    try {
+        recognition.start();
+        document.getElementById('mic-status').innerText = '🎙️ Escuchando...';
+    } catch (e) {}
 }
 
 function stopListening() {
@@ -335,45 +322,46 @@ function stopListening() {
 }
 
 function playAudioFeedback(isCorrect) {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+    if (!audioCtx) return;
+
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(audioCtx.destination);
 
     if (isCorrect) {
-        osc.frequency.setValueAtTime(523.25, ctx.currentTime);
-        osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
-        gain.gain.fadeOut(ctx.currentTime + 0.3);
+        osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+        osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
         osc.start();
-        osc.stop(ctx.currentTime + 0.3);
+        osc.stop(audioCtx.currentTime + 0.35);
     } else {
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(220, ctx.currentTime);
-        osc.frequency.setValueAtTime(180, ctx.currentTime + 0.15);
-        gain.gain.fadeOut(ctx.currentTime + 0.4);
+        osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+        osc.frequency.setValueAtTime(180, audioCtx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
         osc.start();
-        osc.stop(ctx.currentTime + 0.4);
+        osc.stop(audioCtx.currentTime + 0.4);
     }
 }
 
 /* ==========================================
-   5. RESUMEN Y REPETICIÓN DE FALLOS
+   5. RESULTADOS
    ========================================== */
 function finishGame() {
-    setBgColor(DEFAULT_BG);
     switchSection('results');
     
     const total = matchHistory.length;
     const corrects = matchHistory.filter(m => m.isCorrect).length;
-    const finalScore = Math.round((corrects / total) * 100);
+    const finalScore = total > 0 ? Math.round((corrects / total) * 100) : 0;
 
     document.getElementById('final-score').innerText = `Puntuación Total: ${finalScore} / 100`;
 
     const statsContainer = document.getElementById('table-stats-container');
     statsContainer.innerHTML = '';
 
-    // Agrupar por tabla seleccionada
     const tablesInMatch = [...new Set(matchHistory.map(m => m.table))];
 
     tablesInMatch.forEach(tbl => {
