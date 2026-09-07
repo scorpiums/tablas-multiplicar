@@ -85,7 +85,6 @@ body {
     display: block;
 }
 
-/* SELECTOR DE TABLAS */
 .table-selector-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -110,7 +109,6 @@ body {
     transform: scale(1.05);
 }
 
-/* FICHAS DE ESTUDIO */
 .study-card-full {
     background: white;
     padding: 16px 20px;
@@ -174,7 +172,6 @@ body {
     gap: 10px;
 }
 
-/* CONFIGURACIÓN REPASO */
 .setup-card {
     background: white;
     padding: 18px 20px;
@@ -289,7 +286,6 @@ body {
 
 .btn-secondary { background: #718093; }
 
-/* PANTALLA DE JUEGO */
 .game-header {
     display: flex;
     justify-content: space-between;
