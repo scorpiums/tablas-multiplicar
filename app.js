@@ -16,7 +16,6 @@ let recognition = null;
 let audioCtx = null;
 
 let isAudioReading = false;
-let activeAudioSpeed = null;
 
 let matchHistory = [];
 let failedCards = [];
@@ -42,7 +41,7 @@ function switchSection(sectionId) {
 }
 
 /* ==========================================
-   1. ESTUDIAR TABLAS Y CONTROL DE AUDIO
+   1. ESTUDIAR TABLAS Y REPRODUCCIÓN POR VOZ
    ========================================== */
 function initStudySection() {
     const navContainer = document.getElementById('learn-buttons');
@@ -111,17 +110,17 @@ function togglePracticeAnswers() {
 
 function stopTableAudio() {
     isAudioReading = false;
-    activeAudioSpeed = null;
     
     if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
     }
 
-    document.querySelectorAll('.btn-audio-speed').forEach(btn => btn.classList.remove('playing'));
+    const activeBtn = document.getElementById('btn-audio-single');
+    if (activeBtn) activeBtn.classList.remove('playing');
 }
 
-async function toggleTableAudio(speedSeconds) {
-    if (isAudioReading && activeAudioSpeed === speedSeconds) {
+async function toggleTableAudio() {
+    if (isAudioReading) {
         stopTableAudio();
         return;
     }
@@ -130,13 +129,11 @@ async function toggleTableAudio(speedSeconds) {
     await new Promise(res => setTimeout(res, 100));
 
     isAudioReading = true;
-    activeAudioSpeed = speedSeconds;
-
-    const btnId = speedSeconds === 1 ? 'btn-audio-x1' : 'btn-audio-x2';
-    const activeBtn = document.getElementById(btnId);
+    const activeBtn = document.getElementById('btn-audio-single');
     if (activeBtn) activeBtn.classList.add('playing');
 
     const num = selectedStudyTable;
+    const pauseSeconds = 0.5; // Pausa fija de medio segundo
 
     for (let i = 0; i <= 10; i++) {
         if (!isAudioReading) break;
@@ -145,12 +142,10 @@ async function toggleTableAudio(speedSeconds) {
         await speakPromise(textToSpeak);
 
         if (!isAudioReading) break;
-        await new Promise(res => setTimeout(res, speedSeconds * 1000));
+        await new Promise(res => setTimeout(res, pauseSeconds * 1000));
     }
 
-    if (activeAudioSpeed === speedSeconds) {
-        stopTableAudio();
-    }
+    stopTableAudio();
 }
 
 function speakPromise(text) {
@@ -172,7 +167,7 @@ function speakPromise(text) {
 }
 
 /* ==========================================
-   2. CONFIGURACIÓN REPASO
+   2. CONFIGURACIÓN REPASO (SIN LÍMITE DE TABLAS)
    ========================================== */
 function initGameSetupSection() {
     const container = document.getElementById('tables-selection');
@@ -193,11 +188,6 @@ function initGameSetupSection() {
 function toggleTableSelection(checkbox, num) {
     const label = checkbox.parentElement;
     if (checkbox.checked) {
-        if (selectedPracticeTables.length >= 3) {
-            checkbox.checked = false;
-            alert('Puedes seleccionar un máximo de 3 tablas.');
-            return;
-        }
         selectedPracticeTables.push(num);
         label.classList.add('selected');
     } else {
@@ -329,7 +319,7 @@ function nextCard() {
 }
 
 /* ==========================================
-   4. AUDIOS DE RESULTADO
+   4. AUDIOS Y RECONOCIMIENTO DE VOZ (SIN ENVÍO AUTOMÁTICO)
    ========================================== */
 function speakText(text) {
     if ('speechSynthesis' in window) {
@@ -351,16 +341,19 @@ function startListening() {
     if (!recognition) {
         recognition = new SpeechRecognition();
         recognition.lang = 'es-ES';
-        recognition.continuous = false;
+        recognition.continuous = true;
         recognition.interimResults = false;
 
         recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript.trim();
-            const parsedNum = parseInt(transcript);
-            if (!isNaN(parsedNum) && timerInterval !== null) {
+            const lastResultIndex = event.results.length - 1;
+            const transcript = event.results[lastResultIndex][0].transcript.trim();
+            
+            // Extraer solo dígitos de la respuesta hablada
+            const matches = transcript.match(/\d+/);
+            if (matches && timerInterval !== null) {
+                const parsedNum = parseInt(matches[0]);
                 document.getElementById('user-input').value = parsedNum;
                 document.getElementById('btn-submit').disabled = false;
-                submitAnswer();
             }
         };
 
@@ -417,7 +410,7 @@ function finishGame() {
     const corrects = matchHistory.filter(m => m.isCorrect).length;
     const finalScore = total > 0 ? Math.round((corrects / total) * 100) : 0;
 
-    document.getElementById('final-score').innerText = `Puntuación Total: ${finalScore} / 100`;
+    document.getElementById('final-score').innerText = `${finalScore} / 100`;
 
     const statsContainer = document.getElementById('table-stats-container');
     statsContainer.innerHTML = '';
