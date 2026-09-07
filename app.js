@@ -3,12 +3,11 @@ const TABLE_COLORS = [
     '#F1C40F', '#E84393', '#00CEC9', '#D63031', '#00B894', '#6C5CE7'
 ];
 
-// Diccionario ordenado por palabras para evitar sobreescritura de números parciales
+// Mapeo detallado de decenas y unidades compuestas
 const SPANISH_NUMBER_ENTRIES = [
     ["cero", 0], ["uno", 1], ["dos", 2], ["tres", 3], ["cuatro", 4], ["cinco", 5], ["seis", 6], ["siete", 7], ["ocho", 8], ["nueve", 9], ["diez", 10],
     ["once", 11], ["doce", 12], ["trece", 13], ["catorce", 14], ["quince", 15], ["dieciséis", 16], ["diecisiete", 17], ["dieciocho", 18], ["diecinueve", 19], ["veinte", 20],
     ["veintiuno", 21], ["veintidós", 22], ["veintitrés", 23], ["veinticuatro", 24], ["veinticinco", 25], ["veintiséis", 26], ["veintisiete", 27], ["veintiocho", 28], ["veintinueve", 29],
-    ["veinte y uno", 21], ["veinte y dos", 22], ["veinte y tres", 23], ["veinte y cuatro", 24], ["veinte y cinco", 25], ["veinte y seis", 26], ["veinte y siete", 27], ["veinte y ocho", 28], ["veinte y nueve", 29],
     ["treinta y uno", 31], ["treinta y dos", 32], ["treinta y tres", 33], ["treinta y cuatro", 34], ["treinta y cinco", 35], ["treinta y seis", 36], ["treinta y siete", 37], ["treinta y ocho", 38], ["treinta y nueve", 39], ["treinta", 30],
     ["cuarenta y uno", 41], ["cuarenta y dos", 42], ["cuarenta y tres", 43], ["cuarenta y cuatro", 44], ["cuarenta y cinco", 45], ["cuarenta y seis", 46], ["cuarenta y siete", 47], ["cuarenta y ocho", 48], ["cuarenta y nueve", 49], ["cuarenta", 40],
     ["cincuenta y uno", 51], ["cincuenta y dos", 52], ["cincuenta y tres", 53], ["cincuenta y cuatro", 54], ["cincuenta y cinco", 55], ["cincuenta y seis", 56], ["cincuenta y siete", 57], ["cincuenta y ocho", 58], ["cincuenta y nueve", 59], ["cincuenta", 50],
@@ -28,6 +27,7 @@ let currentDeck = [];
 let currentCardIndex = 0;
 let timerInterval = null;
 let autoNextTimeout = null;
+let speechDebounceTimeout = null;
 let timeLeft = 0;
 
 let recognition = null;
@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function switchSection(sectionId) {
     stopTableAudio();
     if (autoNextTimeout) clearTimeout(autoNextTimeout);
+    if (speechDebounceTimeout) clearTimeout(speechDebounceTimeout);
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.btn-nav').forEach(b => b.classList.remove('active'));
 
@@ -253,6 +254,7 @@ function startGame() {
 
 function loadCard() {
     if (autoNextTimeout) clearTimeout(autoNextTimeout);
+    if (speechDebounceTimeout) clearTimeout(speechDebounceTimeout);
 
     if (currentCardIndex >= currentDeck.length) {
         finishGame();
@@ -349,7 +351,7 @@ function nextCard() {
 }
 
 /* ==========================================
-   4. AUDIO Y RECONOCIMIENTO DE VOZ PARSEADO
+   4. RECONOCIMIENTO DE VOZ AVANZADO (ACUMULATIVO)
    ========================================== */
 function speakText(text, onEndCallback) {
     if ('speechSynthesis' in window) {
@@ -367,13 +369,11 @@ function speakText(text, onEndCallback) {
     }
 }
 
-function parseSpokenNumber(transcript) {
-    let cleanStr = transcript.toLowerCase().trim();
-    
-    // Normalizar tildes
+function parseSpokenPhrase(fullText) {
+    let cleanStr = fullText.toLowerCase().trim();
     cleanStr = cleanStr.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-    // Buscar coincidencias habladas de mayor a menor longitud
+    // 1. Buscar coincidencias compuestas explícitas de mayor a menor preferencia
     for (const [key, val] of SPANISH_NUMBER_ENTRIES) {
         const keyClean = key.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         if (cleanStr.includes(keyClean)) {
@@ -381,10 +381,11 @@ function parseSpokenNumber(transcript) {
         }
     }
 
-    // Si devuelve dígitos directos en lugar de texto
-    const directMatch = cleanStr.match(/\d+/);
-    if (directMatch) {
-        return parseInt(directMatch[0]);
+    // 2. Si viene transcrito en formato de dígitos continuos (ej: "48")
+    const digitsMatch = cleanStr.match(/\d+/g);
+    if (digitsMatch) {
+        const joinedDigits = digitsMatch.join('');
+        return parseInt(joinedDigits);
     }
 
     return null;
@@ -401,22 +402,26 @@ function startListening() {
         recognition = new SpeechRecognition();
         recognition.lang = 'es-ES';
         recognition.continuous = true;
-        recognition.interimResults = false;
+        recognition.interimResults = true; // Capturar stream completo en tiempo real
 
         recognition.onresult = (event) => {
             if (timerInterval === null) return;
 
-            // Recorrer los últimos resultados hablados para capturar la frase completa
-            for (let i = event.results.length - 1; i >= 0; i--) {
-                const transcript = event.results[i][0].transcript;
-                const numberFound = parseSpokenNumber(transcript);
+            // Concatenar todos los fragmentos dictados en la sesión actual
+            let currentSpeech = '';
+            for (let i = 0; i < event.results.length; i++) {
+                currentSpeech += ' ' + event.results[i][0].transcript;
+            }
 
+            // Esperar 400ms tras el dictado para asegurar que la palabra compuesta terminó de pronunciarse
+            if (speechDebounceTimeout) clearTimeout(speechDebounceTimeout);
+            speechDebounceTimeout = setTimeout(() => {
+                const numberFound = parseSpokenPhrase(currentSpeech);
                 if (numberFound !== null) {
                     document.getElementById('user-input').value = numberFound;
                     document.getElementById('btn-submit').disabled = false;
-                    break;
                 }
-            }
+            }, 400);
         };
 
         recognition.onerror = () => {
@@ -431,6 +436,7 @@ function startListening() {
 }
 
 function stopListening() {
+    if (speechDebounceTimeout) clearTimeout(speechDebounceTimeout);
     if (recognition) {
         try { recognition.stop(); } catch (e) {}
     }
