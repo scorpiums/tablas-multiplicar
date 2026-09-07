@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¡TablaAventura! - Aprende las Tablas de Multiplicar</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <header class="app-header">
+        <h1>✨ ¡TablaAventura! ✨</h1>
+        <nav>
+            <button id="nav-learn" class="btn-nav active" onclick="switchSection('learn')">📖 Estudiar Tablas</button>
+            <button id="nav-game" class="btn-nav" onclick="switchSection('game-setup')">🎮 Modo Repaso</button>
+        </nav>
+    </header>
+
+    <main class="container">
+        <!-- SECCIÓN 1: APRENDER TABLAS -->
+        <section id="section-learn" class="section active">
+            <h2>Selecciona una tabla para estudiar</h2>
+            <div class="table-selector-bar" id="learn-buttons">
+                <!-- Se generan dinámicamente botones 0 a 10 -->
+            </div>
+            
+            <div class="study-grid" id="study-container">
+                <div class="study-card" id="card-complete">
+                    <h3>Tabla Completa</h3>
+                    <ul id="list-complete"></ul>
+                </div>
+                <div class="study-card" id="card-practice">
+                    <h3>¡Pruébate a ti mismo!</h3>
+                    <ul id="list-practice"></ul>
+                    <button class="btn-action" onclick="togglePracticeAnswers()">Mostrar / Ocultar Respuestas</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN 2: CONFIGURACIÓN DEL REPASO -->
+        <section id="section-game-setup" class="section">
+            <div class="setup-card">
+                <h2> Configura tu Partida de Repaso</h2>
+                <p class="subtitle">Elige hasta 3 tablas y la velocidad de respuesta</p>
+
+                <h3>1. Elige las tablas (máximo 3):</h3>
+                <div class="checkbox-grid" id="tables-selection">
+                    <!-- Se generan los checkboxes dinámicamente -->
+                </div>
+
+                <h3>2. Elige el Nivel de Dificultad:</h3>
+                <div class="difficulty-selector">
+                    <label class="diff-btn">
+                        <input type="radio" name="difficulty" value="10" checked>
+                        <span class="diff-card easy">
+                            <strong>Fácil</strong>
+                            <span>⏱️ 10 segundos</span>
+                        </span>
+                    </label>
+                    <label class="diff-btn">
+                        <input type="radio" name="difficulty" value="5">
+                        <span class="diff-card medium">
+                            <strong>Medio</strong>
+                            <span>⏱️ 5 segundos</span>
+                        </span>
+                    </label>
+                    <label class="diff-btn">
+                        <input type="radio" name="difficulty" value="3">
+                        <span class="diff-card hard">
+                            <strong>Difícil</strong>
+                            <span>⏱️ 3 segundos</span>
+                        </span>
+                    </label>
+                </div>
+
+                <button class="btn-start" onclick="startGame()">🚀 ¡Empezar Repaso!</button>
+            </div>
+        </section>
+
+        <!-- SECCIÓN 3: PANTALLA DE JUEGO (FICHA A TODA PANTALLA) -->
+        <section id="section-gameplay" class="section">
+            <div class="game-header">
+                <div class="timer-box">⏱️ Tiempo: <span id="timer-display">10</span>s</div>
+                <div class="progress-box">Ficha <span id="current-index">1</span> de <span id="total-cards">33</span></div>
+            </div>
+
+            <!-- Ficha 3D -->
+            <div class="flashcard-container">
+                <div class="flashcard" id="flashcard">
+                    <div class="card-face card-front">
+                        <div class="card-expression" id="card-question">7 x 8</div>
+                        <div class="mic-status" id="mic-status">🎙️ Escuchando...</div>
+                    </div>
+                    <div class="card-face card-back">
+                        <div class="card-expression" id="card-answer">56</div>
+                        <div id="card-feedback-text">¡Correcto!</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cuadro de Respuesta del Niño -->
+            <div class="answer-box">
+                <span>Tu respuesta: </span>
+                <input type="number" id="user-input" placeholder="?" readonly>
+            </div>
+
+            <!-- Keypad Táctil de apoyo -->
+            <div class="keypad">
+                <button onclick="pressKey('1')">1</button>
+                <button onclick="pressKey('2')">2</button>
+                <button onclick="pressKey('3')">3</button>
+                <button onclick="pressKey('4')">4</button>
+                <button onclick="pressKey('5')">5</button>
+                <button onclick="pressKey('6')">6</button>
+                <button onclick="pressKey('7')">7</button>
+                <button onclick="pressKey('8')">8</button>
+                <button onclick="pressKey('9')">9</button>
+                <button onclick="pressKey('0')">0</button>
+                <button class="btn-clear" onclick="clearInput()">❌ Borrar</button>
+                <button class="btn-submit" onclick="submitAnswer()">✅ Enviar</button>
+            </div>
+        </section>
+
+        <!-- SECCIÓN 4: ESTADÍSTICAS Y RESUMEN -->
+        <section id="section-results" class="section">
+            <div class="results-card">
+                <h2>📊 Resumen de la Partida</h2>
+                <div class="score-badge" id="final-score">Puntuación: 85 / 100</div>
+
+                <div id="table-stats-container" class="stats-grid">
+                    <!-- Estadísticas por tabla -->
+                </div>
+
+                <div class="actions-bar">
+                    <button id="btn-retry-fails" class="btn-action btn-retry" onclick="retryFailedOnly()">🔄 Repasar solo los fallos</button>
+                    <button class="btn-action" onclick="switchSection('game-setup')">🎮 Nueva Partida</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
