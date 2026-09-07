@@ -144,12 +144,12 @@ body {
     background: #f0f3f8;
     border: 2px solid #546de5;
     color: #546de5;
-    padding: 4px 10px;
-    border-radius: 12px;
+    padding: 6px 14px;
+    border-radius: 14px;
     font-family: inherit;
     font-weight: bold;
     cursor: pointer;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     transition: all 0.2s ease;
 }
 
@@ -409,10 +409,23 @@ body {
 }
 
 .score-badge {
-    font-size: 1.8rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 12px 0;
+}
+
+.score-title {
+    font-size: 1.3rem;
     color: #e15f41;
     font-weight: bold;
-    margin: 10px 0;
+}
+
+.score-num {
+    font-size: 2.2rem;
+    color: #e15f41;
+    font-weight: bold;
+    white-space: nowrap;
 }
 
 .stats-grid {
