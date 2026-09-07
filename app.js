@@ -19,7 +19,7 @@ const SPANISH_NUMBER_MAP = {
 let selectedStudyTable = 1;
 let selectedPracticeTables = [];
 let difficultyTime = 10;
-let isAutoNextEnabled = true;
+let isAutoNextEnabled = false;
 
 let currentDeck = [];
 let currentCardIndex = 0;
@@ -285,7 +285,7 @@ function startTimer() {
         document.getElementById('timer-display').innerText = timeLeft;
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
-            submitAnswer(true); // Se acabó el tiempo
+            submitAnswer(true);
         }
     }, 1000);
 }
@@ -328,13 +328,15 @@ function submitAnswer(isTimeout = false) {
     playAudioFeedback(isCorrect);
 
     document.getElementById('btn-submit').disabled = true;
-    document.getElementById('btn-next').disabled = false;
-
-    // Si está activada la opción, avanza automáticamente tras 1.5 segundos
+    
+    // Si pasar automáticamente está activado, salta la tarjeta sin necesidad del botón Siguiente
     if (isAutoNextEnabled) {
+        document.getElementById('btn-next').disabled = true;
         autoNextTimeout = setTimeout(() => {
             nextCard();
-        }, 1500);
+        }, 1200);
+    } else {
+        document.getElementById('btn-next').disabled = false;
     }
 }
 
