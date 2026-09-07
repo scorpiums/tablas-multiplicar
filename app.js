@@ -14,7 +14,9 @@ let timeLeft = 0;
 
 let recognition = null;
 let audioCtx = null;
+
 let isAudioReading = false;
+let activeAudioSpeed = null;
 
 let matchHistory = [];
 let failedCards = [];
@@ -40,7 +42,7 @@ function switchSection(sectionId) {
 }
 
 /* ==========================================
-   1. ESTUDIAR TABLAS Y REPRODUCCIÓN POR VOZ
+   1. ESTUDIAR TABLAS Y CONTROL DE AUDIO
    ========================================== */
 function initStudySection() {
     const navContainer = document.getElementById('learn-buttons');
@@ -109,14 +111,31 @@ function togglePracticeAnswers() {
 
 function stopTableAudio() {
     isAudioReading = false;
+    activeAudioSpeed = null;
+    
     if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
     }
+
+    document.querySelectorAll('.btn-audio-speed').forEach(btn => btn.classList.remove('playing'));
 }
 
-async function playFullTableAudio(pauseSeconds) {
+async function toggleTableAudio(speedSeconds) {
+    if (isAudioReading && activeAudioSpeed === speedSeconds) {
+        stopTableAudio();
+        return;
+    }
+
     stopTableAudio();
+    await new Promise(res => setTimeout(res, 100));
+
     isAudioReading = true;
+    activeAudioSpeed = speedSeconds;
+
+    const btnId = speedSeconds === 1 ? 'btn-audio-x1' : 'btn-audio-x2';
+    const activeBtn = document.getElementById(btnId);
+    if (activeBtn) activeBtn.classList.add('playing');
+
     const num = selectedStudyTable;
 
     for (let i = 0; i <= 10; i++) {
@@ -126,9 +145,12 @@ async function playFullTableAudio(pauseSeconds) {
         await speakPromise(textToSpeak);
 
         if (!isAudioReading) break;
-        await new Promise(res => setTimeout(res, pauseSeconds * 1000));
+        await new Promise(res => setTimeout(res, speedSeconds * 1000));
     }
-    isAudioReading = false;
+
+    if (activeAudioSpeed === speedSeconds) {
+        stopTableAudio();
+    }
 }
 
 function speakPromise(text) {
