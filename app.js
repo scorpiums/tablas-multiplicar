@@ -14,6 +14,7 @@ let timeLeft = 0;
 
 let recognition = null;
 let audioCtx = null;
+let isAudioReading = false;
 
 let matchHistory = [];
 let failedCards = [];
@@ -24,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function switchSection(sectionId) {
+    stopTableAudio();
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.btn-nav').forEach(b => b.classList.remove('active'));
 
@@ -38,7 +40,7 @@ function switchSection(sectionId) {
 }
 
 /* ==========================================
-   1. ESTUDIAR TABLAS
+   1. ESTUDIAR TABLAS Y REPRODUCCIÓN POR VOZ
    ========================================== */
 function initStudySection() {
     const navContainer = document.getElementById('learn-buttons');
@@ -61,6 +63,7 @@ function selectStudyTable(num) {
 }
 
 function showLearnStep(step) {
+    stopTableAudio();
     document.querySelectorAll('.learn-subview').forEach(v => v.classList.remove('active'));
 
     if (step === 'selector') {
@@ -79,7 +82,6 @@ function renderStudyContent(num) {
     document.getElementById('complete-title').innerText = `Tabla del ${num}`;
     document.getElementById('practice-title').innerText = `Pruébate: Tabla del ${num}`;
 
-    // Aplicar el color de la tabla al borde del contenedor interno
     document.getElementById('card-complete-container').style.borderColor = TABLE_COLORS[num];
     document.getElementById('card-practice-container').style.borderColor = TABLE_COLORS[num];
 
@@ -102,6 +104,48 @@ function togglePracticeAnswers() {
     const holders = document.querySelectorAll('.answer-holder');
     holders.forEach(h => {
         h.innerText = (h.innerText === '?') ? h.parentElement.dataset.val : '?';
+    });
+}
+
+function stopTableAudio() {
+    isAudioReading = false;
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+    }
+}
+
+async function playFullTableAudio(pauseSeconds) {
+    stopTableAudio();
+    isAudioReading = true;
+    const num = selectedStudyTable;
+
+    for (let i = 0; i <= 10; i++) {
+        if (!isAudioReading) break;
+
+        const textToSpeak = `${num} por ${i}... ${num * i}`;
+        await speakPromise(textToSpeak);
+
+        if (!isAudioReading) break;
+        await new Promise(res => setTimeout(res, pauseSeconds * 1000));
+    }
+    isAudioReading = false;
+}
+
+function speakPromise(text) {
+    return new Promise((resolve) => {
+        if (!('speechSynthesis' in window)) {
+            resolve();
+            return;
+        }
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'es-ES';
+        utterance.rate = 0.95;
+
+        utterance.onend = () => resolve();
+        utterance.onerror = () => resolve();
+
+        window.speechSynthesis.speak(utterance);
     });
 }
 
@@ -141,7 +185,7 @@ function toggleTableSelection(checkbox, num) {
 }
 
 /* ==========================================
-   3. JUEGO Y CONTROL DE VOZ / AUDIO
+   3. MODO REPASO
    ========================================== */
 function initAudio() {
     if (!audioCtx) {
@@ -158,9 +202,7 @@ function startGame() {
         return;
     }
 
-    // Inicializar audio en la interacción táctil
     initAudio();
-
     difficultyTime = parseInt(document.querySelector('input[name="difficulty"]:checked').value);
     
     currentDeck = [];
@@ -188,7 +230,6 @@ function loadCard() {
 
     const cardData = currentDeck[currentCardIndex];
 
-    // Resetear Ficha 3D y aplicar color a la ficha
     document.getElementById('flashcard').classList.remove('flipped');
     document.getElementById('user-input').value = '';
     document.getElementById('current-index').innerText = currentCardIndex + 1;
@@ -200,7 +241,6 @@ function loadCard() {
     document.getElementById('btn-submit').disabled = true;
     document.getElementById('btn-next').disabled = true;
 
-    // Reproducir voz
     speakText(`${cardData.num1} por ${cardData.num2}`);
 
     startTimer();
@@ -248,7 +288,6 @@ function submitAnswer(isTimeout = false) {
     matchHistory.push({ ...cardData, userAnswer, isCorrect });
     if (!isCorrect) failedCards.push(cardData);
 
-    // Girar Ficha
     const flashcard = document.getElementById('flashcard');
     document.getElementById('card-answer').innerText = cardData.answer;
     document.getElementById('card-feedback-text').innerText = isCorrect ? "¡Correcto! 🎉" : "¡Vaya! 😅";
@@ -256,7 +295,6 @@ function submitAnswer(isTimeout = false) {
     
     flashcard.classList.add('flipped');
 
-    // Reproducir Tono de Acierto / Fallo
     playAudioFeedback(isCorrect);
 
     document.getElementById('btn-submit').disabled = true;
@@ -269,7 +307,7 @@ function nextCard() {
 }
 
 /* ==========================================
-   4. SÍNTESIS Y RECONOCIMIENTO DE VOZ
+   4. AUDIOS DE RESULTADO
    ========================================== */
 function speakText(text) {
     if ('speechSynthesis' in window) {
@@ -330,8 +368,8 @@ function playAudioFeedback(isCorrect) {
     gain.connect(audioCtx.destination);
 
     if (isCorrect) {
-        osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
-        osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
+        osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+        osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
         gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
         osc.start();
