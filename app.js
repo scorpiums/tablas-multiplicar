@@ -1,24 +1,15 @@
-const TABLE_COLORS = [
+ const TABLE_COLORS = [
     '#E74C3C', '#2ECC71', '#3498DB', '#E67E22', '#9B59B6',
     '#F1C40F', '#E84393', '#00CEC9', '#D63031', '#00B894', '#6C5CE7'
 ];
 
-// 1. Números directos compuestos (Prioridad alta)
-const COMPOUND_NUMBERS = [
-    ["cero", 0], ["uno", 1], ["dos", 2], ["tres", 3], ["cuatro", 4], ["cinco", 5], ["seis", 6], ["siete", 7], ["ocho", 8], ["nueve", 9], ["diez", 10],
-    ["once", 11], ["doce", 12], ["trece", 13], ["catorce", 14], ["quince", 15], ["dieciseis", 16], ["diecisiete", 17], ["dieciocho", 18], ["diecinueve", 19], ["veinte", 20],
-    ["veintiuno", 21], ["veintidos", 22], ["veintitres", 23], ["veinticuatro", 24], ["veinticinco", 25], ["veintiseis", 26], ["veintisiete", 27], ["veintiocho", 28], ["veintinueve", 29],
-    ["cien", 100]
-];
-
-// 2. Decenas y Unidades para composición verbal (ej: "cuarenta y ocho")
-const DECENAS_MAP = [
-    ["treinta", 30], ["cuarenta", 40], ["cincuenta", 50], ["sesenta", 60], ["setenta", 70], ["ochenta", 80], ["noventa", 90]
-];
-
-const UNIDADES_MAP = [
-    ["un", 1], ["uno", 1], ["dos", 2], ["tres", 3], ["cuatro", 4], ["cinco", 5], ["seis", 6], ["siete", 7], ["ocho", 8], ["nueve", 9]
-];
+// Tabla de conversión verbal a número
+const NUMBER_WORDS = {
+    "cero": 0, "uno": 1, "un": 1, "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5, "seis": 6, "siete": 7, "ocho": 8, "nueve": 9, "diez": 10,
+    "once": 11, "doce": 12, "trece": 13, "catorce": 14, "quince": 15, "dieciseis": 16, "diecisiete": 17, "dieciocho": 18, "diecinueve": 19, "veinte": 20,
+    "veintiuno": 21, "veintidos": 22, "veintitres": 23, "veinticuatro": 24, "veinticinco": 25, "veintiseis": 26, "veintisiete": 27, "veintiocho": 28, "veintinueve": 29,
+    "treinta": 30, "cuarenta": 40, "cincuenta": 50, "sesenta": 60, "setenta": 70, "ochenta": 80, "noventa": 90, "cien": 100
+};
 
 let selectedStudyTable = 1;
 let selectedPracticeTables = [];
@@ -29,7 +20,7 @@ let currentDeck = [];
 let currentCardIndex = 0;
 let timerInterval = null;
 let autoNextTimeout = null;
-let speechCallbackActive = false;
+let speechTimeout = null;
 let timeLeft = 0;
 
 let recognition = null;
@@ -43,9 +34,27 @@ document.addEventListener('DOMContentLoaded', () => {
     initStudySection();
     initGameSetupSection();
     
-    document.addEventListener('click', initAudio, { once: true });
-    document.addEventListener('touchstart', initAudio, { once: true });
+    // Desbloquear audio en la primera interacción táctil o clic
+    const unlockAudio = () => {
+        initAudio();
+        document.removeEventListener('click', unlockAudio);
+        document.removeEventListener('touchstart', unlockAudio);
+    };
+    document.addEventListener('click', unlockAudio);
+    document.addEventListener('touchstart', unlockAudio);
 });
+
+function initAudio() {
+    if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+            audioCtx = new AudioContextClass();
+        }
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+}
 
 function switchSection(sectionId) {
     stopAllAudioAndSpeech();
@@ -64,12 +73,11 @@ function switchSection(sectionId) {
 }
 
 function stopAllAudioAndSpeech() {
-    speechCallbackActive = false;
     isAudioReading = false;
 
-    if (autoNextTimeout) clearTimeout(autoNextTimeout);
-    if (timerInterval) clearInterval(timerInterval);
-    timerInterval = null;
+    if (autoNextTimeout) { clearTimeout(autoNextTimeout); autoNextTimeout = null; }
+    if (speechTimeout) { clearTimeout(speechTimeout); speechTimeout = null; }
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
 
     if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
@@ -231,18 +239,6 @@ function toggleTableSelection(checkbox, num) {
 /* ==========================================
    3. MODO REPASO Y JUEGO
    ========================================== */
-function initAudio() {
-    if (!audioCtx) {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (AudioContextClass) {
-            audioCtx = new AudioContextClass();
-        }
-    }
-    if (audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume();
-    }
-}
-
 function startGame() {
     if (selectedPracticeTables.length === 0) {
         alert('Selecciona al menos 1 tabla para repasar.');
@@ -291,9 +287,9 @@ function loadCard() {
     document.getElementById('btn-submit').disabled = true;
     document.getElementById('btn-next').disabled = true;
 
-    speechCallbackActive = true;
     speakText(`${cardData.num1} por ${cardData.num2}`, () => {
-        if (speechCallbackActive) {
+        // Solo iniciar si seguimos en la pantalla de juego
+        if (document.getElementById('section-gameplay').classList.contains('active')) {
             startTimer();
             startListening();
         }
@@ -372,7 +368,7 @@ function nextCard() {
 }
 
 /* ==========================================
-   4. PARSER DE VOZ MEJORADO Y ROBUSTO
+   4. ANALIZADOR DE VOZ Y NÚMEROS COMPUESTOS
    ========================================== */
 function speakText(text, onEndCallback) {
     if ('speechSynthesis' in window) {
@@ -393,49 +389,34 @@ function speakText(text, onEndCallback) {
 function parseSpokenPhrase(fullText) {
     if (!fullText) return null;
 
-    // Normalizar tildes y limpiar caracteres no alfabéticos ni numéricos
+    // Normalización del texto dictado
     let text = fullText.toLowerCase()
         .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
         .replace(/[^a-z0-9\s]/g, " ");
 
-    // A. Si el motor devuelve directamente dígitos numéricos (ej: "48")
-    const digitsMatch = text.match(/\b\d+\b/g);
-    if (digitsMatch) {
-        return parseInt(digitsMatch[0]);
+    // A. Extraer números en formato de dígitos directos (ej: "48" o "40 8")
+    const numbersInText = text.match(/\b\d+\b/g);
+    if (numbersInText) {
+        let totalSum = 0;
+        numbersInText.forEach(n => {
+            totalSum += parseInt(n);
+        });
+        return totalSum; // Si dijo "40" y luego "8", suma = 48
     }
 
-    // B. Comprobar números compuestos directos (0-29, 100) con límites de palabra (\b)
-    for (const [key, val] of COMPOUND_NUMBERS) {
-        const regex = new RegExp(`\\b${key}\\b`, 'i');
-        if (regex.test(text)) {
-            return val;
+    // B. Extraer palabras individuales e interpretar Decenas + Unidades
+    const words = text.split(/\s+/);
+    let totalValue = 0;
+    let foundNumber = false;
+
+    words.forEach(word => {
+        if (NUMBER_WORDS[word] !== undefined) {
+            totalValue += NUMBER_WORDS[word];
+            foundNumber = true;
         }
-    }
+    });
 
-    // C. Comprobar combinación de Decena + Unidad (ej: "cuarenta y ocho" o "cuarenta ocho")
-    let detectedDecena = 0;
-    let detectedUnidad = 0;
-
-    for (const [decKey, decVal] of DECENAS_MAP) {
-        const regexDec = new RegExp(`\\b${decKey}\\b`, 'i');
-        if (regexDec.test(text)) {
-            detectedDecena = decVal;
-            break;
-        }
-    }
-
-    if (detectedDecena > 0) {
-        for (const [undKey, undVal] of UNIDADES_MAP) {
-            const regexUnd = new RegExp(`\\b${undKey}\\b`, 'i');
-            if (regexUnd.test(text)) {
-                detectedUnidad = undVal;
-                break;
-            }
-        }
-        return detectedDecena + detectedUnidad; // Retorna 40 + 8 = 48
-    }
-
-    return null;
+    return foundNumber ? totalValue : null;
 }
 
 function startListening() {
@@ -451,14 +432,19 @@ function startListening() {
 
     recognition = new SpeechRecognition();
     recognition.lang = 'es-ES';
-    recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.continuous = true;
+    recognition.interimResults = true;
 
     recognition.onresult = (event) => {
         if (timerInterval === null) return;
 
-        const transcript = event.results[0][0].transcript;
-        const numberFound = parseSpokenPhrase(transcript);
+        // Acumular la frase completa capturada durante la dictación actual
+        let currentSpeech = '';
+        for (let i = 0; i < event.results.length; i++) {
+            currentSpeech += ' ' + event.results[i][0].transcript;
+        }
+
+        const numberFound = parseSpokenPhrase(currentSpeech);
 
         if (numberFound !== null) {
             document.getElementById('user-input').value = numberFound;
@@ -497,8 +483,8 @@ function playAudioFeedback(isCorrect) {
 
         if (isCorrect) {
             osc.type = 'sine';
-            osc.frequency.setValueAtTime(523.25, now);
-            osc.frequency.setValueAtTime(659.25, now + 0.1);
+            osc.frequency.setValueAtTime(523.25, now); // Do
+            osc.frequency.setValueAtTime(659.25, now + 0.1); // Mi
             gain.gain.setValueAtTime(0.3, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
             osc.start(now);
@@ -513,7 +499,7 @@ function playAudioFeedback(isCorrect) {
             osc.stop(now + 0.4);
         }
     } catch (e) {
-        console.log("Audio error:", e);
+        console.log("Audio feedback error:", e);
     }
 }
 
@@ -569,3 +555,4 @@ function retryFailedOnly() {
     switchSection('gameplay');
     loadCard();
 }
+
