@@ -62,9 +62,10 @@ body {
 }
 
 .container {
-    max-width: 800px;
+    max-width: 440px;
     margin: 10px auto;
     padding: 0 12px;
+    box-sizing: border-box;
 }
 
 .section {
@@ -112,12 +113,11 @@ body {
 /* FICHAS DE ESTUDIO */
 .study-card-full {
     background: white;
-    padding: 12px 20px;
-    border-radius: 20px;
+    padding: 16px 20px;
+    border-radius: 24px;
     box-shadow: 0 6px 20px rgba(0,0,0,0.08);
-    display: inline-block;
+    display: block;
     width: 100%;
-    max-width: 440px;
     box-sizing: border-box;
     border: 4px solid #546de5;
     position: relative;
@@ -127,7 +127,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
 }
 
 .card-header-actions h2 {
@@ -163,7 +163,7 @@ body {
 .table-list {
     list-style: none;
     padding: 0;
-    margin: 0 0 12px 0;
+    margin: 0 0 16px 0;
     font-size: 1.25rem;
     line-height: 1.45;
 }
@@ -177,10 +177,12 @@ body {
 /* CONFIGURACIÓN REPASO */
 .setup-card {
     background: white;
-    padding: 15px 20px;
-    border-radius: 20px;
+    padding: 18px 20px;
+    border-radius: 24px;
     text-align: center;
     box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+    box-sizing: border-box;
+    width: 100%;
 }
 
 .setup-card h2 {
@@ -190,17 +192,17 @@ body {
 }
 
 .section-label {
-    margin: 10px 0 6px 0;
+    margin: 12px 0 8px 0;
     font-weight: bold;
     font-size: 1rem;
     text-align: left;
 }
 
 .checkbox-grid {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
     gap: 8px;
+    justify-items: center;
 }
 
 .tbl-check {
@@ -249,7 +251,7 @@ body {
 }
 
 .options-container {
-    margin: 10px 0 15px 0;
+    margin: 12px 0 18px 0;
     text-align: left;
 }
 
@@ -257,7 +259,7 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-weight: bold;
     cursor: pointer;
     background: #f0f3f8;
@@ -276,7 +278,7 @@ body {
     background: #2ecc71;
     color: white;
     border: none;
-    padding: 10px 20px;
+    padding: 12px 24px;
     font-size: 1.1rem;
     font-family: inherit;
     border-radius: 25px;
@@ -293,19 +295,18 @@ body {
     justify-content: space-between;
     font-size: 1.1rem;
     font-weight: bold;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     background: white;
-    padding: 8px 16px;
-    border-radius: 14px;
+    padding: 10px 18px;
+    border-radius: 16px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.05);
 }
 
 .flashcard-container {
     perspective: 1000px;
     width: 100%;
-    max-width: 380px;
     height: 180px;
-    margin: 0 auto 10px auto;
+    margin: 0 auto 12px auto;
 }
 
 .flashcard {
@@ -359,8 +360,7 @@ body {
     justify-content: center;
     gap: 12px;
     align-items: flex-start;
-    max-width: 380px;
-    margin: 0 auto;
+    width: 100%;
 }
 
 .keypad {
@@ -427,16 +427,19 @@ body {
 
 .results-card {
     background: white;
-    padding: 20px;
-    border-radius: 20px;
+    padding: 24px 20px;
+    border-radius: 24px;
     text-align: center;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .score-badge {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin: 12px 0;
+    margin: 12px 0 18px 0;
 }
 
 .score-title {
@@ -462,8 +465,16 @@ body {
 
 .stat-item {
     background: #f8f9fa;
-    padding: 10px 16px;
-    border-radius: 12px;
+    padding: 12px 18px;
+    border-radius: 14px;
     border-left: 5px solid #546de5;
     text-align: left;
+}
+
+.actions-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+    margin-top: 15px;
 }
