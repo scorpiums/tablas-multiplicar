@@ -1,62 +1,74 @@
 :root {
-    --bg-color: #f4f9ff;
+    --bg-default: #eef5fc;
     --font-family: 'Fredoka', cursive, sans-serif;
-    --color-t0: #FF6B6B;
-    --color-t1: #4ECDC4;
-    --color-t2: #45B7D1;
-    --color-t3: #FFA07A;
-    --color-t4: #98D8C8;
-    --color-t5: #F7D794;
-    --color-t6: #778BEB;
-    --color-t7: #E15F41;
-    --color-t8: #3DC1D3;
-    --color-t9: #63C2DE;
-    --color-t10: #E77F67;
+    
+    /* Paleta de 11 Colores Únicos e Intensos pero Suaves */
+    --color-t0: #E74C3C; /* Rojo */
+    --color-t1: #2ECC71; /* Verde Esmeralda */
+    --color-t2: #3498DB; /* Azul Brillante */
+    --color-t3: #E67E22; /* Naranja */
+    --color-t4: #9B59B6; /* Morado */
+    --color-t5: #F1C40F; /* Amarillo Dorado */
+    --color-t6: #E84393; /* Rosa Intenso */
+    --color-t7: #00CEC9; /* Turquesa */
+    --color-t8: #D63031; /* Rojo Ladrillo */
+    --color-t9: #00B894; /* Menta / Verde Lima */
+    --color-t10: #6C5CE7; /* Violeta / Indigo */
 }
 
 body {
     margin: 0;
     padding: 0;
     font-family: var(--font-family);
-    background-color: var(--bg-color);
+    background-color: var(--bg-default);
     color: #2c3e50;
+    transition: background-color 0.4s ease;
+    min-height: 100vh;
 }
 
+/* HEADER COMPACTO CON NAVEGACIÓN EN LÍNEA */
 .app-header {
-    background: #546de5;
+    background: #2d3436;
     color: white;
-    text-align: center;
-    padding: 15px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    padding: 8px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
 }
 
 .app-header h1 {
-    margin: 0 0 10px 0;
+    margin: 0;
+    font-size: 1.4rem;
 }
 
-nav .btn-nav {
-    background: rgba(255, 255, 255, 0.2);
+.nav-bar {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-nav {
+    background: rgba(255, 255, 255, 0.15);
     border: none;
     color: white;
-    padding: 10px 20px;
-    font-size: 1.1rem;
+    padding: 8px 16px;
+    font-size: 0.95rem;
     font-family: inherit;
     border-radius: 20px;
     cursor: pointer;
-    margin: 0 5px;
     transition: 0.2s;
 }
 
-nav .btn-nav.active, nav .btn-nav:hover {
+.btn-nav.active, .btn-nav:hover {
     background: white;
-    color: #546de5;
+    color: #2d3436;
     font-weight: bold;
 }
 
 .container {
-    max-width: 900px;
-    margin: 20px auto;
-    padding: 0 15px;
+    max-width: 800px;
+    margin: 10px auto;
+    padding: 0 10px;
 }
 
 .section {
@@ -67,146 +79,180 @@ nav .btn-nav.active, nav .btn-nav:hover {
     display: block;
 }
 
-/* SECCIÓN APRENDER */
-.table-selector-bar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
-    margin-bottom: 20px;
+/* SUBVISTAS DE ESTUDIO */
+.learn-subview {
+    display: none;
+    text-align: center;
+}
+
+.learn-subview.active {
+    display: block;
+}
+
+.table-selector-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 10px;
+    margin-top: 15px;
 }
 
 .btn-table-select {
     border: none;
-    padding: 12px 18px;
+    padding: 15px 5px;
     font-size: 1.2rem;
     font-family: inherit;
-    border-radius: 12px;
+    border-radius: 15px;
     color: white;
     font-weight: bold;
     cursor: pointer;
-    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
-    transition: transform 0.1s;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    transition: transform 0.15s;
 }
 
 .btn-table-select:hover {
     transform: scale(1.08);
 }
 
-.study-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-}
-
-@media(max-width: 600px) {
-    .study-grid { grid-template-columns: 1fr; }
-}
-
-.study-card {
+.study-card-full {
     background: white;
-    padding: 20px;
+    padding: 15px 25px;
     border-radius: 20px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+    display: inline-block;
+    width: 90%;
+    max-width: 450px;
 }
 
-.study-card ul {
+.study-card-full h2 {
+    margin-top: 5px;
+    margin-bottom: 10px;
+    font-size: 1.6rem;
+}
+
+.table-list {
     list-style: none;
     padding: 0;
-    font-size: 1.3rem;
-    line-height: 2;
+    margin: 0 0 15px 0;
+    font-size: 1.2rem;
+    line-height: 1.8;
 }
 
-/* SETUP CONFIGURACIÓN */
+.nav-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+/* CONFIGURACIÓN MODO REPASO COMPACTO */
 .setup-card {
     background: white;
-    padding: 30px;
+    padding: 15px 20px;
     border-radius: 20px;
     text-align: center;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.setup-card h2 {
+    margin: 0 0 10px 0;
+    font-size: 1.4rem;
+}
+
+.section-label {
+    margin: 8px 0 5px 0;
+    font-weight: bold;
+    font-size: 1rem;
+    text-align: left;
 }
 
 .checkbox-grid {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 10px;
-    margin: 20px 0;
+    gap: 6px;
 }
 
 .tbl-check {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 60px;
-    height: 60px;
-    border-radius: 15px;
+    width: 45px;
+    height: 45px;
+    border-radius: 12px;
     color: white;
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     font-weight: bold;
     cursor: pointer;
     user-select: none;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
 .tbl-check input { display: none; }
 
 .tbl-check.selected {
-    outline: 4px solid #333;
-    transform: scale(1.05);
+    outline: 4px solid #2d3436;
+    transform: scale(1.1);
 }
 
 .difficulty-selector {
     display: flex;
     justify-content: center;
-    gap: 15px;
-    margin: 20px 0;
+    gap: 10px;
+    margin: 10px 0 15px 0;
 }
 
 .diff-card {
     display: flex;
     flex-direction: column;
-    padding: 15px;
-    border-radius: 15px;
+    padding: 8px 12px;
+    border-radius: 12px;
     background: #f0f0f0;
     cursor: pointer;
-    width: 100px;
+    width: 80px;
+    font-size: 0.9rem;
 }
 
 .diff-btn input { display: none; }
 .diff-btn input:checked + .diff-card {
-    background: #546de5;
+    background: #2d3436;
     color: white;
 }
 
 .btn-start, .btn-action {
-    background: #778be3;
+    background: #00b894;
     color: white;
     border: none;
-    padding: 15px 30px;
-    font-size: 1.3rem;
+    padding: 10px 20px;
+    font-size: 1.1rem;
     font-family: inherit;
-    border-radius: 30px;
+    border-radius: 25px;
     cursor: pointer;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
 
-.btn-start:hover { background: #546de5; }
+.btn-secondary {
+    background: #636e72;
+}
 
-/* FICHA Y JUEGO */
+.btn-start:hover { background: #00876c; }
+
+/* PANTALLA DE JUEGO (GAMEPLAY) */
 .game-header {
     display: flex;
     justify-content: space-between;
-    font-size: 1.3rem;
+    font-size: 1.1rem;
     font-weight: bold;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
+    background: rgba(255,255,255,0.85);
+    padding: 8px 15px;
+    border-radius: 12px;
 }
 
 .flashcard-container {
     perspective: 1000px;
     width: 100%;
-    max-width: 400px;
-    height: 220px;
-    margin: 0 auto 20px auto;
+    max-width: 320px;
+    height: 160px;
+    margin: 0 auto 10px auto;
 }
 
 .flashcard {
@@ -214,9 +260,9 @@ nav .btn-nav.active, nav .btn-nav:hover {
     height: 100%;
     position: relative;
     transform-style: preserve-3d;
-    transition: transform 0.6s;
-    border-radius: 25px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    transition: transform 0.5s;
+    border-radius: 20px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
 }
 
 .flashcard.flipped {
@@ -232,104 +278,126 @@ nav .btn-nav.active, nav .btn-nav:hover {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    border-radius: 25px;
-    background: #3dc1d3;
-    color: white;
+    border-radius: 20px;
+    background: white;
+    color: #2d3436;
 }
 
 .card-back {
-    background: #63c2de;
     transform: rotateY(180deg);
+    color: white;
 }
 
 .card-expression {
-    font-size: 4rem;
+    font-size: 3.2rem;
     font-weight: bold;
 }
 
 .mic-status {
-    margin-top: 10px;
-    font-size: 1rem;
-    background: rgba(0,0,0,0.15);
-    padding: 5px 15px;
-    border-radius: 15px;
+    font-size: 0.85rem;
+    background: rgba(0,0,0,0.08);
+    padding: 3px 10px;
+    border-radius: 10px;
 }
 
 .answer-box {
     text-align: center;
-    font-size: 1.5rem;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 }
 
 .answer-box input {
     font-family: inherit;
-    font-size: 2rem;
-    width: 100px;
+    font-size: 1.8rem;
+    width: 90px;
     text-align: center;
-    border: 3px solid #546de5;
+    border: 3px solid #2d3436;
     border-radius: 12px;
-    padding: 5px;
+    padding: 2px;
+    background: white;
+}
+
+.gameplay-controls {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    align-items: center;
 }
 
 /* KEYPAD */
 .keypad {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    max-width: 300px;
-    margin: 0 auto;
+    gap: 6px;
+    width: 200px;
 }
 
 .keypad button {
-    padding: 15px;
-    font-size: 1.5rem;
+    padding: 10px;
+    font-size: 1.2rem;
     font-family: inherit;
     border: none;
     background: white;
-    border-radius: 12px;
-    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     cursor: pointer;
 }
 
-.keypad button:active { background: #e0e0e0; }
-.btn-clear { background: #ffbe76 !important; grid-column: span 1; }
-.btn-submit { background: #78e08f !important; grid-column: span 2; font-weight: bold; }
+.btn-clear { background: #fab1a0 !important; grid-column: span 2; font-size: 0.9rem !important; }
 
-/* ESTADÍSTICAS */
+.game-action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.btn-game-act {
+    padding: 12px 20px;
+    font-size: 1.1rem;
+    font-family: inherit;
+    border: none;
+    border-radius: 15px;
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+}
+
+.btn-submit { background: #2ecc71; }
+.btn-next { background: #0984e3; }
+
+.btn-game-act:disabled {
+    background: #b2bec3;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* RESULTADOS */
 .results-card {
     background: white;
-    padding: 30px;
+    padding: 20px;
     border-radius: 20px;
     text-align: center;
 }
 
 .score-badge {
-    font-size: 2rem;
+    font-size: 1.8rem;
     color: #e15f41;
     font-weight: bold;
-    margin: 15px 0;
+    margin: 10px 0;
 }
 
 .stats-grid {
     display: flex;
     flex-wrap: wrap;
-    gap: 15px;
+    gap: 10px;
     justify-content: center;
-    margin: 20px 0;
+    margin: 15px 0;
 }
 
 .stat-item {
     background: #f8f9fa;
-    padding: 15px;
-    border-radius: 15px;
-    border-left: 6px solid #546de5;
+    padding: 10px 15px;
+    border-radius: 12px;
+    border-left: 5px solid #2d3436;
     text-align: left;
-    min-width: 180px;
-}
-
-.actions-bar {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    flex-wrap: wrap;
 }
