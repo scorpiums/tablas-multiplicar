@@ -32,8 +32,7 @@
                     <div class="card-header-actions">
                         <h2 id="complete-title">Tabla del 1</h2>
                         <div class="audio-controls">
-                            <button id="btn-audio-x1" class="btn-audio-speed" onclick="toggleTableAudio(1)">🔊 x1</button>
-                            <button id="btn-audio-x2" class="btn-audio-speed" onclick="toggleTableAudio(0.5)">🔊 x2</button>
+                            <button id="btn-audio-single" class="btn-audio-speed" onclick="toggleTableAudio()">🔊 Escuchar</button>
                         </div>
                     </div>
                     <ul id="list-complete" class="table-list"></ul>
@@ -62,7 +61,7 @@
             <div class="setup-card">
                 <h2>Configura tu partida</h2>
 
-                <p class="section-label">1. Elige las tablas (máx. 3):</p>
+                <p class="section-label">1. Elige las tablas que quieres repasar:</p>
                 <div class="checkbox-grid" id="tables-selection"></div>
 
                 <p class="section-label">2. Nivel de Dificultad:</p>
@@ -115,7 +114,6 @@
                 </div>
             </div>
 
-            <!-- Controles Reestructurados: Keypad a la izq, Input y Acciones a la dcha -->
             <div class="gameplay-controls">
                 <div class="keypad">
                     <button onclick="pressKey('1')">1</button>
@@ -145,7 +143,10 @@
         <section id="section-results" class="section">
             <div class="results-card">
                 <h2>📊 Resumen de la Partida</h2>
-                <div class="score-badge" id="final-score">Puntuación: 0 / 100</div>
+                <div class="score-badge">
+                    <span class="score-title">Puntuación Total</span>
+                    <span class="score-num" id="final-score">0 / 100</span>
+                </div>
 
                 <div id="table-stats-container" class="stats-grid"></div>
 
