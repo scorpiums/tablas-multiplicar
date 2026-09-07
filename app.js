@@ -3,7 +3,7 @@ const TABLE_COLORS = [
     '#F1C40F', '#E84393', '#00CEC9', '#D63031', '#00B894', '#6C5CE7'
 ];
 
-// Mapeo detallado de decenas y unidades compuestas
+// Diccionario exhaustivo ordenado de expresiones numéricas en español
 const SPANISH_NUMBER_ENTRIES = [
     ["cero", 0], ["uno", 1], ["dos", 2], ["tres", 3], ["cuatro", 4], ["cinco", 5], ["seis", 6], ["siete", 7], ["ocho", 8], ["nueve", 9], ["diez", 10],
     ["once", 11], ["doce", 12], ["trece", 13], ["catorce", 14], ["quince", 15], ["dieciséis", 16], ["diecisiete", 17], ["dieciocho", 18], ["diecinueve", 19], ["veinte", 20],
@@ -27,7 +27,7 @@ let currentDeck = [];
 let currentCardIndex = 0;
 let timerInterval = null;
 let autoNextTimeout = null;
-let speechDebounceTimeout = null;
+let speechCallbackActive = false; // Control de seguridad para la síntesis de voz
 let timeLeft = 0;
 
 let recognition = null;
@@ -40,12 +40,15 @@ let failedCards = [];
 document.addEventListener('DOMContentLoaded', () => {
     initStudySection();
     initGameSetupSection();
+    
+    // Desbloquear motor de audio con cualquier interacción
+    document.addEventListener('click', initAudio, { once: true });
+    document.addEventListener('touchstart', initAudio, { once: true });
 });
 
 function switchSection(sectionId) {
-    stopTableAudio();
-    if (autoNextTimeout) clearTimeout(autoNextTimeout);
-    if (speechDebounceTimeout) clearTimeout(speechDebounceTimeout);
+    stopAllAudioAndSpeech();
+
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.btn-nav').forEach(b => b.classList.remove('active'));
 
@@ -57,6 +60,21 @@ function switchSection(sectionId) {
     } else if (sectionId === 'game-setup') {
         document.getElementById('nav-game').classList.add('active');
     }
+}
+
+function stopAllAudioAndSpeech() {
+    speechCallbackActive = false;
+    isAudioReading = false;
+
+    if (autoNextTimeout) clearTimeout(autoNextTimeout);
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = null;
+
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+    }
+
+    stopListening();
 }
 
 /* ==========================================
@@ -83,7 +101,7 @@ function selectStudyTable(num) {
 }
 
 function showLearnStep(step) {
-    stopTableAudio();
+    stopAllAudioAndSpeech();
     document.querySelectorAll('.learn-subview').forEach(v => v.classList.remove('active'));
 
     if (step === 'selector') {
@@ -128,10 +146,7 @@ function togglePracticeAnswers() {
 }
 
 function stopTableAudio() {
-    isAudioReading = false;
-    if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-    }
+    stopAllAudioAndSpeech();
     const activeBtn = document.getElementById('btn-audio-single');
     if (activeBtn) activeBtn.classList.remove('playing');
 }
@@ -150,7 +165,6 @@ async function toggleTableAudio() {
     if (activeBtn) activeBtn.classList.add('playing');
 
     const num = selectedStudyTable;
-    const pauseSeconds = 0.5;
 
     for (let i = 0; i <= 10; i++) {
         if (!isAudioReading) break;
@@ -159,7 +173,7 @@ async function toggleTableAudio() {
         await speakPromise(textToSpeak);
 
         if (!isAudioReading) break;
-        await new Promise(res => setTimeout(res, pauseSeconds * 1000));
+        await new Promise(res => setTimeout(res, 500));
     }
 
     stopTableAudio();
@@ -218,9 +232,12 @@ function toggleTableSelection(checkbox, num) {
    ========================================== */
 function initAudio() {
     if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+            audioCtx = new AudioContextClass();
+        }
     }
-    if (audioCtx.state === 'suspended') {
+    if (audioCtx && audioCtx.state === 'suspended') {
         audioCtx.resume();
     }
 }
@@ -253,8 +270,7 @@ function startGame() {
 }
 
 function loadCard() {
-    if (autoNextTimeout) clearTimeout(autoNextTimeout);
-    if (speechDebounceTimeout) clearTimeout(speechDebounceTimeout);
+    stopAllAudioAndSpeech();
 
     if (currentCardIndex >= currentDeck.length) {
         finishGame();
@@ -274,14 +290,17 @@ function loadCard() {
     document.getElementById('btn-submit').disabled = true;
     document.getElementById('btn-next').disabled = true;
 
+    speechCallbackActive = true;
     speakText(`${cardData.num1} por ${cardData.num2}`, () => {
-        startTimer();
-        startListening();
+        if (speechCallbackActive) {
+            startTimer();
+            startListening();
+        }
     });
 }
 
 function startTimer() {
-    clearInterval(timerInterval);
+    if (timerInterval) clearInterval(timerInterval);
     timeLeft = difficultyTime;
     document.getElementById('timer-display').innerText = timeLeft;
 
@@ -290,6 +309,7 @@ function startTimer() {
         document.getElementById('timer-display').innerText = timeLeft;
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
+            timerInterval = null;
             submitAnswer(true);
         }
     }, 1000);
@@ -351,7 +371,7 @@ function nextCard() {
 }
 
 /* ==========================================
-   4. RECONOCIMIENTO DE VOZ AVANZADO (ACUMULATIVO)
+   4. AUDIO Y RECONOCIMIENTO DE VOZ CORREGIDO
    ========================================== */
 function speakText(text, onEndCallback) {
     if ('speechSynthesis' in window) {
@@ -373,7 +393,7 @@ function parseSpokenPhrase(fullText) {
     let cleanStr = fullText.toLowerCase().trim();
     cleanStr = cleanStr.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-    // 1. Buscar coincidencias compuestas explícitas de mayor a menor preferencia
+    // 1. Evaluar si la frase contiene un número hablado completo
     for (const [key, val] of SPANISH_NUMBER_ENTRIES) {
         const keyClean = key.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         if (cleanStr.includes(keyClean)) {
@@ -381,11 +401,10 @@ function parseSpokenPhrase(fullText) {
         }
     }
 
-    // 2. Si viene transcrito en formato de dígitos continuos (ej: "48")
+    // 2. Evaluar si el reconocedor devolvió cifras escritas (ej: "48")
     const digitsMatch = cleanStr.match(/\d+/g);
     if (digitsMatch) {
-        const joinedDigits = digitsMatch.join('');
-        return parseInt(joinedDigits);
+        return parseInt(digitsMatch.join(''));
     }
 
     return null;
@@ -398,36 +417,30 @@ function startListening() {
         return;
     }
 
-    if (!recognition) {
-        recognition = new SpeechRecognition();
-        recognition.lang = 'es-ES';
-        recognition.continuous = true;
-        recognition.interimResults = true; // Capturar stream completo en tiempo real
-
-        recognition.onresult = (event) => {
-            if (timerInterval === null) return;
-
-            // Concatenar todos los fragmentos dictados en la sesión actual
-            let currentSpeech = '';
-            for (let i = 0; i < event.results.length; i++) {
-                currentSpeech += ' ' + event.results[i][0].transcript;
-            }
-
-            // Esperar 400ms tras el dictado para asegurar que la palabra compuesta terminó de pronunciarse
-            if (speechDebounceTimeout) clearTimeout(speechDebounceTimeout);
-            speechDebounceTimeout = setTimeout(() => {
-                const numberFound = parseSpokenPhrase(currentSpeech);
-                if (numberFound !== null) {
-                    document.getElementById('user-input').value = numberFound;
-                    document.getElementById('btn-submit').disabled = false;
-                }
-            }, 400);
-        };
-
-        recognition.onerror = () => {
-            document.getElementById('mic-status').innerText = '🎙️ Teclado listo';
-        };
+    if (recognition) {
+        try { recognition.abort(); } catch (e) {}
     }
+
+    recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES';
+    recognition.continuous = false; // Una sola frase completa
+    recognition.interimResults = false; // PROHIBIR resultados parciales para evitar "40" y luego "8"
+
+    recognition.onresult = (event) => {
+        if (timerInterval === null) return;
+
+        const transcript = event.results[0][0].transcript;
+        const numberFound = parseSpokenPhrase(transcript);
+
+        if (numberFound !== null) {
+            document.getElementById('user-input').value = numberFound;
+            document.getElementById('btn-submit').disabled = false;
+        }
+    };
+
+    recognition.onerror = () => {
+        document.getElementById('mic-status').innerText = '🎙️ Teclado listo';
+    };
 
     try {
         recognition.start();
@@ -436,35 +449,43 @@ function startListening() {
 }
 
 function stopListening() {
-    if (speechDebounceTimeout) clearTimeout(speechDebounceTimeout);
     if (recognition) {
-        try { recognition.stop(); } catch (e) {}
+        try { recognition.abort(); } catch (e) {}
+        recognition = null;
     }
 }
 
 function playAudioFeedback(isCorrect) {
+    initAudio();
     if (!audioCtx) return;
 
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
+    try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
 
-    if (isCorrect) {
-        osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
-        osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.35);
-    } else {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(220, audioCtx.currentTime);
-        osc.frequency.setValueAtTime(180, audioCtx.currentTime + 0.15);
-        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.4);
+        const now = audioCtx.currentTime;
+
+        if (isCorrect) {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(523.25, now); // Nota Do
+            osc.frequency.setValueAtTime(659.25, now + 0.1); // Nota Mi
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+            osc.start(now);
+            osc.stop(now + 0.35);
+        } else {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(220, now);
+            osc.frequency.setValueAtTime(180, now + 0.15);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+            osc.start(now);
+            osc.stop(now + 0.4);
+        }
+    } catch (e) {
+        console.log("Audio feedback error:", e);
     }
 }
 
