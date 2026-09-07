@@ -3,18 +3,21 @@ const TABLE_COLORS = [
     '#F1C40F', '#E84393', '#00CEC9', '#D63031', '#00B894', '#6C5CE7'
 ];
 
-const SPANISH_NUMBER_MAP = {
-    "cero": 0, "uno": 1, "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5, "seis": 6, "siete": 7, "ocho": 8, "nueve": 9, "diez": 10,
-    "once": 11, "doce": 12, "trece": 13, "catorce": 14, "quince": 15, "dieciséis": 16, "diecisiete": 17, "dieciocho": 18, "diecinueve": 19, "veinte": 20,
-    "veintiuno": 21, "veintidós": 22, "veintitrés": 23, "veinticuatro": 24, "veinticinco": 25, "veintiséis": 26, "veintisiete": 27, "veintiocho": 28, "veintinueve": 29, "treinta": 30,
-    "treinta y uno": 31, "treinta y dos": 32, "treinta y tres": 33, "treinta y cuatro": 34, "treinta y cinco": 35, "treinta y seis": 36, "treinta y siete": 37, "treinta y ocho": 38, "treinta y nueve": 39, "cuarenta": 40,
-    "cuarenta y uno": 41, "cuarenta y dos": 42, "cuarenta y tres": 43, "cuarenta y cuatro": 44, "cuarenta y cinco": 45, "cuarenta y seis": 46, "cuarenta y siete": 47, "cuarenta y ocho": 48, "cuarenta y nueve": 49, "cincuenta": 50,
-    "cincuenta y uno": 51, "cincuenta y dos": 52, "cincuenta y tres": 53, "cincuenta y cuatro": 54, "cincuenta y cinco": 55, "cincuenta y seis": 56, "cincuenta y siete": 57, "cincuenta y ocho": 58, "cincuenta y nueve": 59, "sesenta": 60,
-    "sesenta y uno": 61, "sesenta y dos": 62, "sesenta y tres": 63, "sesenta y cuatro": 64, "sesenta y cinco": 65, "sesenta y seis": 66, "sesenta y siete": 67, "sesenta y ocho": 68, "sesenta y nueve": 69, "setenta": 70,
-    "setenta y uno": 71, "setenta y dos": 72, "setenta y tres": 73, "setenta y cuatro": 74, "setenta y cinco": 75, "setenta y seis": 76, "setenta y siete": 77, "setenta y ocho": 78, "setenta y nueve": 79, "ochenta": 80,
-    "ochenta y uno": 81, "ochenta y dos": 82, "ochenta y tres": 83, "ochenta y cuatro": 84, "ochenta y cinco": 85, "ochenta y seis": 86, "ochenta y siete": 87, "ochenta y ocho": 88, "ochenta y nueve": 89, "noventa": 90,
-    "noventa y uno": 91, "noventa y dos": 92, "noventa y tres": 93, "noventa y cuatro": 94, "noventa y cinco": 95, "noventa y seis": 96, "noventa y siete": 97, "noventa y ocho": 98, "noventa y nueve": 99, "cien": 100
-};
+// Diccionario ordenado por palabras para evitar sobreescritura de números parciales
+const SPANISH_NUMBER_ENTRIES = [
+    ["cero", 0], ["uno", 1], ["dos", 2], ["tres", 3], ["cuatro", 4], ["cinco", 5], ["seis", 6], ["siete", 7], ["ocho", 8], ["nueve", 9], ["diez", 10],
+    ["once", 11], ["doce", 12], ["trece", 13], ["catorce", 14], ["quince", 15], ["dieciséis", 16], ["diecisiete", 17], ["dieciocho", 18], ["diecinueve", 19], ["veinte", 20],
+    ["veintiuno", 21], ["veintidós", 22], ["veintitrés", 23], ["veinticuatro", 24], ["veinticinco", 25], ["veintiséis", 26], ["veintisiete", 27], ["veintiocho", 28], ["veintinueve", 29],
+    ["veinte y uno", 21], ["veinte y dos", 22], ["veinte y tres", 23], ["veinte y cuatro", 24], ["veinte y cinco", 25], ["veinte y seis", 26], ["veinte y siete", 27], ["veinte y ocho", 28], ["veinte y nueve", 29],
+    ["treinta y uno", 31], ["treinta y dos", 32], ["treinta y tres", 33], ["treinta y cuatro", 34], ["treinta y cinco", 35], ["treinta y seis", 36], ["treinta y siete", 37], ["treinta y ocho", 38], ["treinta y nueve", 39], ["treinta", 30],
+    ["cuarenta y uno", 41], ["cuarenta y dos", 42], ["cuarenta y tres", 43], ["cuarenta y cuatro", 44], ["cuarenta y cinco", 45], ["cuarenta y seis", 46], ["cuarenta y siete", 47], ["cuarenta y ocho", 48], ["cuarenta y nueve", 49], ["cuarenta", 40],
+    ["cincuenta y uno", 51], ["cincuenta y dos", 52], ["cincuenta y tres", 53], ["cincuenta y cuatro", 54], ["cincuenta y cinco", 55], ["cincuenta y seis", 56], ["cincuenta y siete", 57], ["cincuenta y ocho", 58], ["cincuenta y nueve", 59], ["cincuenta", 50],
+    ["sesenta y uno", 61], ["sesenta y dos", 62], ["sesenta y tres", 63], ["sesenta y cuatro", 64], ["sesenta y cinco", 65], ["sesenta y seis", 66], ["sesenta y siete", 67], ["sesenta y ocho", 68], ["sesenta y nueve", 69], ["sesenta", 60],
+    ["setenta y uno", 71], ["setenta y dos", 72], ["setenta y tres", 73], ["setenta y cuatro", 74], ["setenta y cinco", 75], ["setenta y seis", 76], ["setenta y siete", 77], ["setenta y ocho", 78], ["setenta y nueve", 79], ["setenta", 70],
+    ["ochenta y uno", 81], ["ochenta y dos", 82], ["ochenta y tres", 83], ["ochenta y cuatro", 84], ["ochenta y cinco", 85], ["ochenta y seis", 86], ["ochenta y siete", 87], ["ochenta y ocho", 88], ["ochenta y nueve", 89], ["ochenta", 80],
+    ["noventa y uno", 91], ["noventa y dos", 92], ["noventa y tres", 93], ["noventa y cuatro", 94], ["noventa y cinco", 95], ["noventa y seis", 96], ["noventa y siete", 97], ["noventa y ocho", 98], ["noventa y nueve", 99], ["noventa", 90],
+    ["cien", 100]
+];
 
 let selectedStudyTable = 1;
 let selectedPracticeTables = [];
@@ -329,7 +332,6 @@ function submitAnswer(isTimeout = false) {
 
     document.getElementById('btn-submit').disabled = true;
     
-    // Si pasar automáticamente está activado, salta la tarjeta sin necesidad del botón Siguiente
     if (isAutoNextEnabled) {
         document.getElementById('btn-next').disabled = true;
         autoNextTimeout = setTimeout(() => {
@@ -347,7 +349,7 @@ function nextCard() {
 }
 
 /* ==========================================
-   4. AUDIO Y RECONOCIMIENTO DE VOZ
+   4. AUDIO Y RECONOCIMIENTO DE VOZ PARSEADO
    ========================================== */
 function speakText(text, onEndCallback) {
     if ('speechSynthesis' in window) {
@@ -366,18 +368,25 @@ function speakText(text, onEndCallback) {
 }
 
 function parseSpokenNumber(transcript) {
-    const cleanStr = transcript.toLowerCase().trim();
+    let cleanStr = transcript.toLowerCase().trim();
     
+    // Normalizar tildes
+    cleanStr = cleanStr.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    // Buscar coincidencias habladas de mayor a menor longitud
+    for (const [key, val] of SPANISH_NUMBER_ENTRIES) {
+        const keyClean = key.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (cleanStr.includes(keyClean)) {
+            return val;
+        }
+    }
+
+    // Si devuelve dígitos directos en lugar de texto
     const directMatch = cleanStr.match(/\d+/);
     if (directMatch) {
         return parseInt(directMatch[0]);
     }
 
-    for (const [key, val] of Object.entries(SPANISH_NUMBER_MAP)) {
-        if (cleanStr.includes(key)) {
-            return val;
-        }
-    }
     return null;
 }
 
@@ -397,13 +406,16 @@ function startListening() {
         recognition.onresult = (event) => {
             if (timerInterval === null) return;
 
-            const lastIndex = event.results.length - 1;
-            const transcript = event.results[lastIndex][0].transcript;
-            const numberFound = parseSpokenNumber(transcript);
+            // Recorrer los últimos resultados hablados para capturar la frase completa
+            for (let i = event.results.length - 1; i >= 0; i--) {
+                const transcript = event.results[i][0].transcript;
+                const numberFound = parseSpokenNumber(transcript);
 
-            if (numberFound !== null) {
-                document.getElementById('user-input').value = numberFound;
-                document.getElementById('btn-submit').disabled = false;
+                if (numberFound !== null) {
+                    document.getElementById('user-input').value = numberFound;
+                    document.getElementById('btn-submit').disabled = false;
+                    break;
+                }
             }
         };
 
