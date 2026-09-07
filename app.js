@@ -3,6 +3,19 @@ const TABLE_COLORS = [
     '#F1C40F', '#E84393', '#00CEC9', '#D63031', '#00B894', '#6C5CE7'
 ];
 
+const SPANISH_NUMBER_MAP = {
+    "cero": 0, "uno": 1, "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5, "seis": 6, "siete": 7, "ocho": 8, "nueve": 9, "diez": 10,
+    "once": 11, "doce": 12, "trece": 13, "catorce": 14, "quince": 15, "dieciséis": 16, "diecisiete": 17, "dieciocho": 18, "diecinueve": 19, "veinte": 20,
+    "veintiuno": 21, "veintidós": 22, "veintitrés": 23, "veinticuatro": 24, "veinticinco": 25, "veintiséis": 26, "veintisiete": 27, "veintiocho": 28, "veintinueve": 29, "treinta": 30,
+    "treinta y uno": 31, "treinta y dos": 32, "treinta y tres": 33, "treinta y cuatro": 34, "treinta y cinco": 35, "treinta y seis": 36, "treinta y siete": 37, "treinta y ocho": 38, "treinta y nueve": 39, "cuarenta": 40,
+    "cuarenta y uno": 41, "cuarenta y dos": 42, "cuarenta y tres": 43, "cuarenta y cuatro": 44, "cuarenta y cinco": 45, "cuarenta y seis": 46, "cuarenta y siete": 47, "cuarenta y ocho": 48, "cuarenta y nueve": 49, "cincuenta": 50,
+    "cincuenta y uno": 51, "cincuenta y dos": 52, "cincuenta y tres": 53, "cincuenta y cuatro": 54, "cincuenta y cinco": 55, "cincuenta y seis": 56, "cincuenta y siete": 57, "cincuenta y ocho": 58, "cincuenta y nueve": 59, "sesenta": 60,
+    "sesenta y uno": 61, "sesenta y dos": 62, "sesenta y tres": 63, "sesenta y cuatro": 64, "sesenta y cinco": 65, "sesenta y seis": 66, "sesenta y siete": 67, "sesenta y ocho": 68, "sesenta y nueve": 69, "setenta": 70,
+    "setenta y uno": 71, "setenta y dos": 72, "setenta y tres": 73, "setenta y cuatro": 74, "setenta y cinco": 75, "setenta y seis": 76, "setenta y siete": 77, "setenta y ocho": 78, "setenta y nueve": 79, "ochenta": 80,
+    "ochenta y uno": 81, "ochenta y dos": 82, "ochenta y tres": 83, "ochenta y cuatro": 84, "ochenta y cinco": 85, "ochenta y seis": 86, "ochenta y siete": 87, "ochenta y ocho": 88, "ochenta y nueve": 89, "noventa": 90,
+    "noventa y uno": 91, "noventa y dos": 92, "noventa y tres": 93, "noventa y cuatro": 94, "noventa y cinco": 95, "noventa y seis": 96, "noventa y siete": 97, "noventa y ocho": 98, "noventa y nueve": 99, "cien": 100
+};
+
 let selectedStudyTable = 1;
 let selectedPracticeTables = [];
 let difficultyTime = 10;
@@ -14,7 +27,6 @@ let timeLeft = 0;
 
 let recognition = null;
 let audioCtx = null;
-
 let isAudioReading = false;
 
 let matchHistory = [];
@@ -41,7 +53,7 @@ function switchSection(sectionId) {
 }
 
 /* ==========================================
-   1. ESTUDIAR TABLAS Y REPRODUCCIÓN POR VOZ
+   1. ESTUDIAR TABLAS
    ========================================== */
 function initStudySection() {
     const navContainer = document.getElementById('learn-buttons');
@@ -110,11 +122,9 @@ function togglePracticeAnswers() {
 
 function stopTableAudio() {
     isAudioReading = false;
-    
     if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
     }
-
     const activeBtn = document.getElementById('btn-audio-single');
     if (activeBtn) activeBtn.classList.remove('playing');
 }
@@ -133,7 +143,7 @@ async function toggleTableAudio() {
     if (activeBtn) activeBtn.classList.add('playing');
 
     const num = selectedStudyTable;
-    const pauseSeconds = 0.5; // Pausa fija de medio segundo
+    const pauseSeconds = 0.5;
 
     for (let i = 0; i <= 10; i++) {
         if (!isAudioReading) break;
@@ -167,7 +177,7 @@ function speakPromise(text) {
 }
 
 /* ==========================================
-   2. CONFIGURACIÓN REPASO (SIN LÍMITE DE TABLAS)
+   2. CONFIGURACIÓN REPASO
    ========================================== */
 function initGameSetupSection() {
     const container = document.getElementById('tables-selection');
@@ -197,7 +207,7 @@ function toggleTableSelection(checkbox, num) {
 }
 
 /* ==========================================
-   3. MODO REPASO
+   3. MODO REPASO Y JUEGO
    ========================================== */
 function initAudio() {
     if (!audioCtx) {
@@ -253,10 +263,10 @@ function loadCard() {
     document.getElementById('btn-submit').disabled = true;
     document.getElementById('btn-next').disabled = true;
 
-    speakText(`${cardData.num1} por ${cardData.num2}`);
-
-    startTimer();
-    startListening();
+    speakText(`${cardData.num1} por ${cardData.num2}`, () => {
+        startTimer();
+        startListening();
+    });
 }
 
 function startTimer() {
@@ -269,14 +279,16 @@ function startTimer() {
         document.getElementById('timer-display').innerText = timeLeft;
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
-            submitAnswer(true);
+            submitAnswer(true); // Se acabó el tiempo
         }
     }, 1000);
 }
 
 function pressKey(num) {
+    if (timerInterval === null) return;
+    
     const input = document.getElementById('user-input');
-    if (input.value.length < 3 && timerInterval !== null) {
+    if (input.value.length < 3) {
         input.value += num;
         document.getElementById('btn-submit').disabled = false;
     }
@@ -294,7 +306,7 @@ function submitAnswer(isTimeout = false) {
 
     const cardData = currentDeck[currentCardIndex];
     const inputVal = document.getElementById('user-input').value;
-    const userAnswer = isTimeout ? null : parseInt(inputVal);
+    const userAnswer = (isTimeout && inputVal === '') ? null : parseInt(inputVal);
     const isCorrect = (userAnswer === cardData.answer);
 
     matchHistory.push({ ...cardData, userAnswer, isCorrect });
@@ -319,22 +331,44 @@ function nextCard() {
 }
 
 /* ==========================================
-   4. AUDIOS Y RECONOCIMIENTO DE VOZ (SIN ENVÍO AUTOMÁTICO)
+   4. AUDIO Y RECONOCIMIENTO DE VOZ
    ========================================== */
-function speakText(text) {
+function speakText(text, onEndCallback) {
     if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'es-ES';
         utterance.rate = 0.95;
+        
+        utterance.onend = () => { if (onEndCallback) onEndCallback(); };
+        utterance.onerror = () => { if (onEndCallback) onEndCallback(); };
+
         window.speechSynthesis.speak(utterance);
+    } else {
+        if (onEndCallback) onEndCallback();
     }
+}
+
+function parseSpokenNumber(transcript) {
+    const cleanStr = transcript.toLowerCase().trim();
+    
+    const directMatch = cleanStr.match(/\d+/);
+    if (directMatch) {
+        return parseInt(directMatch[0]);
+    }
+
+    for (const [key, val] of Object.entries(SPANISH_NUMBER_MAP)) {
+        if (cleanStr.includes(key)) {
+            return val;
+        }
+    }
+    return null;
 }
 
 function startListening() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-        document.getElementById('mic-status').innerText = '🎙️ Teclado táctil';
+        document.getElementById('mic-status').innerText = '🎙️ Usar teclado';
         return;
     }
 
@@ -345,20 +379,20 @@ function startListening() {
         recognition.interimResults = false;
 
         recognition.onresult = (event) => {
-            const lastResultIndex = event.results.length - 1;
-            const transcript = event.results[lastResultIndex][0].transcript.trim();
-            
-            // Extraer solo dígitos de la respuesta hablada
-            const matches = transcript.match(/\d+/);
-            if (matches && timerInterval !== null) {
-                const parsedNum = parseInt(matches[0]);
-                document.getElementById('user-input').value = parsedNum;
-                document.getElementById('btn-submit').disabled = false;
+            if (timerInterval === null) return;
+
+            const lastIndex = event.results.length - 1;
+            const transcript = event.results[lastIndex][0].transcript;
+            const numberFound = parseSpokenNumber(transcript);
+
+            if (numberFound !== null) {
+                document.getElementById('user-input').value = numberFound;
+                document.getElementById('btn-submit').disabled = false; // Activa botón enviar
             }
         };
 
         recognition.onerror = () => {
-            document.getElementById('mic-status').innerText = '🎙️ Usa el teclado';
+            document.getElementById('mic-status').innerText = '🎙️ Teclado listo';
         };
     }
 
