@@ -84,7 +84,7 @@ body {
     display: block;
 }
 
-/* SELECTOR DE TABLAS (Botones grandes que cubren la pantalla) */
+/* SELECTOR DE TABLAS */
 .table-selector-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -109,7 +109,7 @@ body {
     transform: scale(1.05);
 }
 
-/* FICHAS DE ESTUDIO COMPACTADAS */
+/* FICHAS DE ESTUDIO */
 .study-card-full {
     background: white;
     padding: 12px 20px;
@@ -150,11 +150,14 @@ body {
     font-weight: bold;
     cursor: pointer;
     font-size: 0.9rem;
+    transition: all 0.2s ease;
 }
 
-.btn-audio-speed:active {
-    background: #546de5;
-    color: white;
+.btn-audio-speed.playing {
+    background: #546de5 !important;
+    color: white !important;
+    box-shadow: 0 0 8px rgba(84, 109, 229, 0.6);
+    transform: scale(1.05);
 }
 
 .table-list {
@@ -171,7 +174,7 @@ body {
     gap: 10px;
 }
 
-/* CONFIGURACIÓN REPASO COMPACTO */
+/* CONFIGURACIÓN REPASO */
 .setup-card {
     background: white;
     padding: 15px 20px;
@@ -260,7 +263,7 @@ body {
 
 .btn-secondary { background: #718093; }
 
-/* PANTALLA DE JUEGO RESTRUCTURADA EN 2 COLUMNAS */
+/* PANTALLA DE JUEGO */
 .game-header {
     display: flex;
     justify-content: space-between;
@@ -327,7 +330,6 @@ body {
     margin-top: 4px;
 }
 
-/* ALINEACIÓN DE CONTROLES: KEYPAD IZQ Y COLUMNA ACCIONES DCHA */
 .gameplay-controls {
     display: flex;
     justify-content: center;
