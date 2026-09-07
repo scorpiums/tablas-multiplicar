@@ -3,19 +3,21 @@ const TABLE_COLORS = [
     '#F1C40F', '#E84393', '#00CEC9', '#D63031', '#00B894', '#6C5CE7'
 ];
 
-// Diccionario exhaustivo ordenado de expresiones numéricas en español
-const SPANISH_NUMBER_ENTRIES = [
+// 1. Números directos compuestos (Prioridad alta)
+const COMPOUND_NUMBERS = [
     ["cero", 0], ["uno", 1], ["dos", 2], ["tres", 3], ["cuatro", 4], ["cinco", 5], ["seis", 6], ["siete", 7], ["ocho", 8], ["nueve", 9], ["diez", 10],
-    ["once", 11], ["doce", 12], ["trece", 13], ["catorce", 14], ["quince", 15], ["dieciséis", 16], ["diecisiete", 17], ["dieciocho", 18], ["diecinueve", 19], ["veinte", 20],
-    ["veintiuno", 21], ["veintidós", 22], ["veintitrés", 23], ["veinticuatro", 24], ["veinticinco", 25], ["veintiséis", 26], ["veintisiete", 27], ["veintiocho", 28], ["veintinueve", 29],
-    ["treinta y uno", 31], ["treinta y dos", 32], ["treinta y tres", 33], ["treinta y cuatro", 34], ["treinta y cinco", 35], ["treinta y seis", 36], ["treinta y siete", 37], ["treinta y ocho", 38], ["treinta y nueve", 39], ["treinta", 30],
-    ["cuarenta y uno", 41], ["cuarenta y dos", 42], ["cuarenta y tres", 43], ["cuarenta y cuatro", 44], ["cuarenta y cinco", 45], ["cuarenta y seis", 46], ["cuarenta y siete", 47], ["cuarenta y ocho", 48], ["cuarenta y nueve", 49], ["cuarenta", 40],
-    ["cincuenta y uno", 51], ["cincuenta y dos", 52], ["cincuenta y tres", 53], ["cincuenta y cuatro", 54], ["cincuenta y cinco", 55], ["cincuenta y seis", 56], ["cincuenta y siete", 57], ["cincuenta y ocho", 58], ["cincuenta y nueve", 59], ["cincuenta", 50],
-    ["sesenta y uno", 61], ["sesenta y dos", 62], ["sesenta y tres", 63], ["sesenta y cuatro", 64], ["sesenta y cinco", 65], ["sesenta y seis", 66], ["sesenta y siete", 67], ["sesenta y ocho", 68], ["sesenta y nueve", 69], ["sesenta", 60],
-    ["setenta y uno", 71], ["setenta y dos", 72], ["setenta y tres", 73], ["setenta y cuatro", 74], ["setenta y cinco", 75], ["setenta y seis", 76], ["setenta y siete", 77], ["setenta y ocho", 78], ["setenta y nueve", 79], ["setenta", 70],
-    ["ochenta y uno", 81], ["ochenta y dos", 82], ["ochenta y tres", 83], ["ochenta y cuatro", 84], ["ochenta y cinco", 85], ["ochenta y seis", 86], ["ochenta y siete", 87], ["ochenta y ocho", 88], ["ochenta y nueve", 89], ["ochenta", 80],
-    ["noventa y uno", 91], ["noventa y dos", 92], ["noventa y tres", 93], ["noventa y cuatro", 94], ["noventa y cinco", 95], ["noventa y seis", 96], ["noventa y siete", 97], ["noventa y ocho", 98], ["noventa y nueve", 99], ["noventa", 90],
+    ["once", 11], ["doce", 12], ["trece", 13], ["catorce", 14], ["quince", 15], ["dieciseis", 16], ["diecisiete", 17], ["dieciocho", 18], ["diecinueve", 19], ["veinte", 20],
+    ["veintiuno", 21], ["veintidos", 22], ["veintitres", 23], ["veinticuatro", 24], ["veinticinco", 25], ["veintiseis", 26], ["veintisiete", 27], ["veintiocho", 28], ["veintinueve", 29],
     ["cien", 100]
+];
+
+// 2. Decenas y Unidades para composición verbal (ej: "cuarenta y ocho")
+const DECENAS_MAP = [
+    ["treinta", 30], ["cuarenta", 40], ["cincuenta", 50], ["sesenta", 60], ["setenta", 70], ["ochenta", 80], ["noventa", 90]
+];
+
+const UNIDADES_MAP = [
+    ["un", 1], ["uno", 1], ["dos", 2], ["tres", 3], ["cuatro", 4], ["cinco", 5], ["seis", 6], ["siete", 7], ["ocho", 8], ["nueve", 9]
 ];
 
 let selectedStudyTable = 1;
@@ -27,7 +29,7 @@ let currentDeck = [];
 let currentCardIndex = 0;
 let timerInterval = null;
 let autoNextTimeout = null;
-let speechCallbackActive = false; // Control de seguridad para la síntesis de voz
+let speechCallbackActive = false;
 let timeLeft = 0;
 
 let recognition = null;
@@ -41,7 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initStudySection();
     initGameSetupSection();
     
-    // Desbloquear motor de audio con cualquier interacción
     document.addEventListener('click', initAudio, { once: true });
     document.addEventListener('touchstart', initAudio, { once: true });
 });
@@ -371,7 +372,7 @@ function nextCard() {
 }
 
 /* ==========================================
-   4. AUDIO Y RECONOCIMIENTO DE VOZ CORREGIDO
+   4. PARSER DE VOZ MEJORADO Y ROBUSTO
    ========================================== */
 function speakText(text, onEndCallback) {
     if ('speechSynthesis' in window) {
@@ -390,21 +391,48 @@ function speakText(text, onEndCallback) {
 }
 
 function parseSpokenPhrase(fullText) {
-    let cleanStr = fullText.toLowerCase().trim();
-    cleanStr = cleanStr.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (!fullText) return null;
 
-    // 1. Evaluar si la frase contiene un número hablado completo
-    for (const [key, val] of SPANISH_NUMBER_ENTRIES) {
-        const keyClean = key.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        if (cleanStr.includes(keyClean)) {
+    // Normalizar tildes y limpiar caracteres no alfabéticos ni numéricos
+    let text = fullText.toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9\s]/g, " ");
+
+    // A. Si el motor devuelve directamente dígitos numéricos (ej: "48")
+    const digitsMatch = text.match(/\b\d+\b/g);
+    if (digitsMatch) {
+        return parseInt(digitsMatch[0]);
+    }
+
+    // B. Comprobar números compuestos directos (0-29, 100) con límites de palabra (\b)
+    for (const [key, val] of COMPOUND_NUMBERS) {
+        const regex = new RegExp(`\\b${key}\\b`, 'i');
+        if (regex.test(text)) {
             return val;
         }
     }
 
-    // 2. Evaluar si el reconocedor devolvió cifras escritas (ej: "48")
-    const digitsMatch = cleanStr.match(/\d+/g);
-    if (digitsMatch) {
-        return parseInt(digitsMatch.join(''));
+    // C. Comprobar combinación de Decena + Unidad (ej: "cuarenta y ocho" o "cuarenta ocho")
+    let detectedDecena = 0;
+    let detectedUnidad = 0;
+
+    for (const [decKey, decVal] of DECENAS_MAP) {
+        const regexDec = new RegExp(`\\b${decKey}\\b`, 'i');
+        if (regexDec.test(text)) {
+            detectedDecena = decVal;
+            break;
+        }
+    }
+
+    if (detectedDecena > 0) {
+        for (const [undKey, undVal] of UNIDADES_MAP) {
+            const regexUnd = new RegExp(`\\b${undKey}\\b`, 'i');
+            if (regexUnd.test(text)) {
+                detectedUnidad = undVal;
+                break;
+            }
+        }
+        return detectedDecena + detectedUnidad; // Retorna 40 + 8 = 48
     }
 
     return null;
@@ -423,8 +451,8 @@ function startListening() {
 
     recognition = new SpeechRecognition();
     recognition.lang = 'es-ES';
-    recognition.continuous = false; // Una sola frase completa
-    recognition.interimResults = false; // PROHIBIR resultados parciales para evitar "40" y luego "8"
+    recognition.continuous = false;
+    recognition.interimResults = false;
 
     recognition.onresult = (event) => {
         if (timerInterval === null) return;
@@ -469,8 +497,8 @@ function playAudioFeedback(isCorrect) {
 
         if (isCorrect) {
             osc.type = 'sine';
-            osc.frequency.setValueAtTime(523.25, now); // Nota Do
-            osc.frequency.setValueAtTime(659.25, now + 0.1); // Nota Mi
+            osc.frequency.setValueAtTime(523.25, now);
+            osc.frequency.setValueAtTime(659.25, now + 0.1);
             gain.gain.setValueAtTime(0.3, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
             osc.start(now);
@@ -485,7 +513,7 @@ function playAudioFeedback(isCorrect) {
             osc.stop(now + 0.4);
         }
     } catch (e) {
-        console.log("Audio feedback error:", e);
+        console.log("Audio error:", e);
     }
 }
 
