@@ -19,10 +19,12 @@ const SPANISH_NUMBER_MAP = {
 let selectedStudyTable = 1;
 let selectedPracticeTables = [];
 let difficultyTime = 10;
+let isAutoNextEnabled = true;
 
 let currentDeck = [];
 let currentCardIndex = 0;
 let timerInterval = null;
+let autoNextTimeout = null;
 let timeLeft = 0;
 
 let recognition = null;
@@ -39,6 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function switchSection(sectionId) {
     stopTableAudio();
+    if (autoNextTimeout) clearTimeout(autoNextTimeout);
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.btn-nav').forEach(b => b.classList.remove('active'));
 
@@ -226,6 +229,7 @@ function startGame() {
 
     initAudio();
     difficultyTime = parseInt(document.querySelector('input[name="difficulty"]:checked').value);
+    isAutoNextEnabled = document.getElementById('auto-next-check').checked;
     
     currentDeck = [];
     selectedPracticeTables.forEach(table => {
@@ -245,6 +249,8 @@ function startGame() {
 }
 
 function loadCard() {
+    if (autoNextTimeout) clearTimeout(autoNextTimeout);
+
     if (currentCardIndex >= currentDeck.length) {
         finishGame();
         return;
@@ -323,9 +329,17 @@ function submitAnswer(isTimeout = false) {
 
     document.getElementById('btn-submit').disabled = true;
     document.getElementById('btn-next').disabled = false;
+
+    // Si está activada la opción, avanza automáticamente tras 1.5 segundos
+    if (isAutoNextEnabled) {
+        autoNextTimeout = setTimeout(() => {
+            nextCard();
+        }, 1500);
+    }
 }
 
 function nextCard() {
+    if (autoNextTimeout) clearTimeout(autoNextTimeout);
     currentCardIndex++;
     loadCard();
 }
@@ -387,7 +401,7 @@ function startListening() {
 
             if (numberFound !== null) {
                 document.getElementById('user-input').value = numberFound;
-                document.getElementById('btn-submit').disabled = false; // Activa botón enviar
+                document.getElementById('btn-submit').disabled = false;
             }
         };
 
