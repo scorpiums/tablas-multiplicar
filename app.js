@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ¡TablaAventura! - Motor JavaScript Rediseñado
+   ¡TablaAventura! - Motor JavaScript con Tiempo de Gracia para Transcripción
    ========================================================================== */
 
 const TABLE_COLORS = [
@@ -36,7 +36,9 @@ let currentCardIndex = 0;
 let timerInterval = null;
 let autoNextTimeout = null;
 let speechDebounceTimer = null;
+let gracePeriodTimeout = null;
 let timeLeft = 0;
+let isGracePeriod = false; // Control de fase de gracia
 
 let recognition = null;
 let audioCtx = null;
@@ -52,7 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initStudySection();
     initGameSetupSection();
     
-    // Garantizar que la Audio API se reactive tras tocar la pantalla (Políticas móviles)
     const enableAudioContext = () => {
         if (!audioCtx) {
             const AudioClass = window.AudioContext || window.webkitAudioContext;
@@ -70,10 +71,12 @@ document.addEventListener('DOMContentLoaded', () => {
 // Limpieza total del sistema al cambiar de pantalla
 function fullResetState() {
     isAudioReading = false;
+    isGracePeriod = false;
 
     if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
     if (autoNextTimeout) { clearTimeout(autoNextTimeout); autoNextTimeout = null; }
     if (speechDebounceTimer) { clearTimeout(speechDebounceTimer); speechDebounceTimer = null; }
+    if (gracePeriodTimeout) { clearTimeout(gracePeriodTimeout); gracePeriodTimeout = null; }
 
     if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
@@ -313,17 +316,38 @@ function startTimer() {
 
     timerInterval = setInterval(() => {
         timeLeft--;
-        document.getElementById('timer-display').innerText = timeLeft;
-        if (timeLeft <= 0) {
+        if (timeLeft > 0) {
+            document.getElementById('timer-display').innerText = timeLeft;
+        } else {
             clearInterval(timerInterval);
             timerInterval = null;
-            submitAnswer(true);
+            enterGracePeriod(); // Entrar en tiempo de gracia al llegar a 0s
         }
     }, 1000);
 }
 
+// Entrar en tiempo de gracia de transcripción
+function enterGracePeriod() {
+    isGracePeriod = true;
+    document.getElementById('timer-display').innerText = "0";
+    document.getElementById('mic-status').innerText = '✍️ Transcribiendo...';
+
+    // Pedir al reconocedor que detenga la grabación y procese el búfer de audio restante
+    if (recognition) {
+        try { recognition.stop(); } catch (e) {}
+    }
+
+    // Timeout de seguridad: si pasados 1.5s no se ha transcrito nada, evaluar vacia
+    gracePeriodTimeout = setTimeout(() => {
+        if (isGracePeriod) {
+            isGracePeriod = false;
+            submitAnswer(true);
+        }
+    }, 1500);
+}
+
 function pressKey(num) {
-    if (timerInterval === null) return;
+    if (timerInterval === null && !isGracePeriod) return;
     
     const input = document.getElementById('user-input');
     if (input.value.length < 3) {
@@ -376,7 +400,7 @@ function nextCard() {
 }
 
 /* ==========================================
-   4. RECONOCIMIENTO DE VOZ ROBUSTO CON DEBOUNCE
+   4. RECONOCIMIENTO DE VOZ ASÍNCRONO
    ========================================== */
 function speakText(text, onEndCallback) {
     if ('speechSynthesis' in window) {
@@ -394,26 +418,21 @@ function speakText(text, onEndCallback) {
     }
 }
 
-// Analizador de gramática que suma decenas y unidades
 function parseSpokenPhraseToNumber(phrase) {
     if (!phrase) return null;
 
-    // Normalizar tildes y caracteres especiales
     let text = phrase.toLowerCase()
         .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
         .replace(/[^a-z0-9\s]/g, " ")
         .trim();
 
-    // 1. Si el navegador entrega dígitos explícitos (ej: "48")
     const explicitDigits = text.match(/\b\d+\b/g);
     if (explicitDigits) {
-        // En caso de enviar dígitos separados como "40 8"
         let sum = 0;
         explicitDigits.forEach(d => sum += parseInt(d));
         return sum;
     }
 
-    // 2. Comprobar palabras especiales directas (11-29, 100)
     const words = text.split(/\s+/);
     for (const w of words) {
         if (SPANISH_ESPECIALES[w] !== undefined) {
@@ -421,7 +440,6 @@ function parseSpokenPhraseToNumber(phrase) {
         }
     }
 
-    // 3. Evaluar combinación de Decenas + Unidades (ej: "cuarenta y ocho")
     let sumDecena = 0;
     let sumUnidad = 0;
     let foundNumber = false;
@@ -459,23 +477,33 @@ function startMicListening() {
     recognition.interimResults = true;
 
     recognition.onresult = (event) => {
-        if (timerInterval === null) return;
+        if (timerInterval === null && !isGracePeriod) return;
 
-        // Acumular el dictado completo en curso
         let accumulatedSpeech = '';
         for (let i = 0; i < event.results.length; i++) {
             accumulatedSpeech += ' ' + event.results[i][0].transcript;
         }
 
-        // DEBOUNCE: Esperar 600ms sin hablar antes de validar la respuesta
-        if (speechDebounceTimer) clearTimeout(speechDebounceTimer);
-        speechDebounceTimer = setTimeout(() => {
+        const handleResultProcess = () => {
             const parsedNumber = parseSpokenPhraseToNumber(accumulatedSpeech);
             if (parsedNumber !== null) {
                 document.getElementById('user-input').value = parsedNumber;
                 document.getElementById('btn-submit').disabled = false;
+
+                // Si se transcribió dentro del tiempo de gracia, validar automáticamente
+                if (isGracePeriod) {
+                    isGracePeriod = false;
+                    submitAnswer(false);
+                }
             }
-        }, 600);
+        };
+
+        if (isGracePeriod) {
+            handleResultProcess();
+        } else {
+            if (speechDebounceTimer) clearTimeout(speechDebounceTimer);
+            speechDebounceTimer = setTimeout(handleResultProcess, 500);
+        }
     };
 
     recognition.onerror = () => {
@@ -592,3 +620,4 @@ function retryFailedOnly() {
     switchSection('gameplay');
     loadCard();
 }
+   
