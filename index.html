@@ -9,7 +9,6 @@
 </head>
 <body>
 
-    <!-- Header original con título arriba y botones debajo centrados en paralelo -->
     <header class="app-header">
         <h1>✨ ¡TablaAventura! ✨</h1>
         <nav class="nav-buttons-container">
@@ -30,11 +29,17 @@
             <!-- Vista 2: Tabla Completa -->
             <div id="learn-step-complete" class="learn-subview">
                 <div class="study-card-full" id="card-complete-container">
-                    <h2 id="complete-title">Tabla del 1</h2>
+                    <div class="card-header-actions">
+                        <h2 id="complete-title">Tabla del 1</h2>
+                        <div class="audio-controls">
+                            <button class="btn-audio-speed" onclick="playFullTableAudio(1)">🔊 x1</button>
+                            <button class="btn-audio-speed" onclick="playFullTableAudio(0.5)">🔊 x2</button>
+                        </div>
+                    </div>
                     <ul id="list-complete" class="table-list"></ul>
                     <div class="nav-actions">
-                        <button class="btn-action btn-secondary" onclick="showLearnStep('selector')">⬅️ Volver</button>
-                        <button class="btn-action" onclick="showLearnStep('practice')">🎯 Pruébate a ti mismo ➡️</button>
+                        <button class="btn-action btn-secondary" onclick="stopTableAudio(); showLearnStep('selector');">⬅️ Volver</button>
+                        <button class="btn-action" onclick="stopTableAudio(); showLearnStep('practice');">🎯 Pruébate ➡️</button>
                     </div>
                 </div>
             </div>
@@ -45,8 +50,8 @@
                     <h2 id="practice-title">Pruébate: Tabla del 1</h2>
                     <ul id="list-practice" class="table-list"></ul>
                     <div class="nav-actions">
-                        <button class="btn-action btn-secondary" onclick="showLearnStep('selector')">⬅️ Volver al Selector</button>
-                        <button class="btn-action" onclick="togglePracticeAnswers()">👁️ Mostrar / Ocultar Respuestas</button>
+                        <button class="btn-action btn-secondary" onclick="showLearnStep('selector')">⬅️ Volver</button>
+                        <button class="btn-action" onclick="togglePracticeAnswers()">👁️ Ver Respuestas</button>
                     </div>
                 </div>
             </div>
@@ -101,7 +106,7 @@
                 <div class="flashcard" id="flashcard">
                     <div class="card-face card-front" id="card-front-element">
                         <div class="card-expression" id="card-question">7 x 8</div>
-                        <div class="mic-status" id="mic-status">🎙️ Activar Micrófono</div>
+                        <div class="mic-status" id="mic-status">🎙️ Escuchando...</div>
                     </div>
                     <div class="card-face card-back" id="card-back-element">
                         <div class="card-expression" id="card-answer">56</div>
@@ -110,11 +115,7 @@
                 </div>
             </div>
 
-            <div class="answer-box">
-                <input type="number" id="user-input" placeholder="?" readonly>
-            </div>
-
-            <!-- Controles y Keypad -->
+            <!-- Controles Reestructurados: Keypad a la izq, Input y Acciones a la dcha -->
             <div class="gameplay-controls">
                 <div class="keypad">
                     <button onclick="pressKey('1')">1</button>
@@ -130,7 +131,10 @@
                     <button class="btn-clear" onclick="clearInput()">❌ Borrar</button>
                 </div>
 
-                <div class="game-action-buttons">
+                <div class="game-action-column">
+                    <div class="answer-box">
+                        <input type="number" id="user-input" placeholder="?" readonly>
+                    </div>
                     <button id="btn-submit" class="btn-game-act btn-submit" onclick="submitAnswer()" disabled>✅ Enviar</button>
                     <button id="btn-next" class="btn-game-act btn-next" onclick="nextCard()" disabled>▶️ Siguiente</button>
                 </div>
