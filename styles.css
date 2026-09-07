@@ -248,6 +248,30 @@ body {
     color: white;
 }
 
+.options-container {
+    margin: 10px 0 15px 0;
+    text-align: left;
+}
+
+.auto-next-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.95rem;
+    font-weight: bold;
+    cursor: pointer;
+    background: #f0f3f8;
+    padding: 10px 14px;
+    border-radius: 14px;
+}
+
+.auto-next-option input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #2ecc71;
+    cursor: pointer;
+}
+
 .btn-start, .btn-action {
     background: #2ecc71;
     color: white;
