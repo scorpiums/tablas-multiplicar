@@ -32,8 +32,8 @@
                     <div class="card-header-actions">
                         <h2 id="complete-title">Tabla del 1</h2>
                         <div class="audio-controls">
-                            <button class="btn-audio-speed" onclick="playFullTableAudio(1)">🔊 x1</button>
-                            <button class="btn-audio-speed" onclick="playFullTableAudio(0.5)">🔊 x2</button>
+                            <button id="btn-audio-x1" class="btn-audio-speed" onclick="toggleTableAudio(1)">🔊 x1</button>
+                            <button id="btn-audio-x2" class="btn-audio-speed" onclick="toggleTableAudio(0.5)">🔊 x2</button>
                         </div>
                     </div>
                     <ul id="list-complete" class="table-list"></ul>
