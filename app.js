@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ¡Tabla Aventura! - Código Completo Actualizado
+   ¡Tabla Aventura! - Lógica Actualizada con Desvanecimiento Neutro
    ========================================================================== */
 
 const TABLE_COLORS = {
@@ -184,7 +184,6 @@ function toggleTestMode() {
     const checkBtn = document.getElementById('btn-check-next');
 
     if (!isTestModeActive) {
-        // Activar modo prueba
         isTestModeActive = true;
         revealIndex = 0;
         testBtn.innerText = '📖 Mostrar Tabla';
@@ -200,7 +199,6 @@ function toggleTestMode() {
             list.appendChild(li);
         }
     } else {
-        // Restaurar tabla completa
         renderStudyCard(num);
     }
 }
@@ -222,48 +220,33 @@ function revealNextAnswer() {
 
     const holder = row.querySelector('.val-revealed');
 
-    // 1. Crear número flotante en el centro de la lista
+    // 1. Mostrar número flotante en el centro
     const flyEl = document.createElement('div');
     flyEl.className = 'flying-number';
     flyEl.innerText = resultValue;
     list.appendChild(flyEl);
 
-    // 2. Calcular coordenadas del destino respecto al contenedor
-    const listRect = list.getBoundingClientRect();
-    const targetRect = holder.getBoundingClientRect();
-
-    const targetX = (targetRect.left + targetRect.width / 2) - (listRect.left + listRect.width / 2);
-    const targetY = (targetRect.top + targetRect.height / 2) - (listRect.top + listRect.height / 2);
-
-    flyEl.style.setProperty('--target-x', `${targetX}px`);
-    flyEl.style.setProperty('--target-y', `${targetY}px`);
-
-    // Fase 1: Muestra en grande durante 1000ms
+    // Muestra en grande en el centro durante 1000ms
     setTimeout(() => {
-        // Fase 2: Encogerse en el centro (350ms)
-        flyEl.classList.add('step-shrink');
+        // Desvanecimiento suave (fade out)
+        flyEl.classList.add('fade-out');
 
+        // Mientras se desvanece, aparece directamente en su sitio con borde amarillo temporal
         setTimeout(() => {
-            // Fase 3: Desplazamiento a su casilla (350ms)
-            flyEl.classList.add('step-move');
+            holder.innerText = resultValue;
+            holder.classList.add('highlight');
+            
+            setTimeout(() => holder.classList.remove('highlight'), 1200);
 
-            setTimeout(() => {
-                // Finalizar: Fijar respuesta neutra y eliminar el elemento flotante
-                holder.innerText = resultValue;
-                holder.classList.add('highlight');
-                
-                setTimeout(() => holder.classList.remove('highlight'), 1000);
+            if (flyEl.parentNode) {
+                flyEl.parentNode.removeChild(flyEl);
+            }
 
-                if (flyEl.parentNode) {
-                    flyEl.parentNode.removeChild(flyEl);
-                }
-
-                isAnimatingCheck = false;
-                if (revealIndex < 10) {
-                    checkBtn.disabled = false;
-                }
-            }, 350);
-        }, 350);
+            isAnimatingCheck = false;
+            if (revealIndex < 10) {
+                checkBtn.disabled = false;
+            }
+        }, 200);
     }, 1000);
 }
 
