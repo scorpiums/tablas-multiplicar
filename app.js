@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ¡Tabla Aventura! - Lógica Completa y Mejorada
+   ¡Tabla Aventura! - Lógica Completa con Animación y Opciones de Audio
    ========================================================================== */
 
 const TABLE_COLORS = {
@@ -26,7 +26,7 @@ const SPANISH_ESPECIALES = {
 
 // Variables de Estado
 let selectedStudyTable = 1;
-let revealIndex = 0; // Para la función "Comprueba"
+let revealIndex = 0;
 let selectedPracticeTables = [];
 let difficultyTime = 10;
 let isAutoNextEnabled = false;
@@ -104,7 +104,6 @@ function initStudySection() {
     const navContainer = document.getElementById('learn-buttons');
     navContainer.innerHTML = '';
 
-    // Botones del 1 al 9
     for (let i = 1; i <= 9; i++) {
         const btn = document.createElement('button');
         btn.className = 'btn-table-select';
@@ -114,7 +113,6 @@ function initStudySection() {
         navContainer.appendChild(btn);
     }
 
-    // Botón 10 Ancho Completo
     const btn10 = document.createElement('button');
     btn10.className = 'btn-table-select btn-table-10';
     btn10.style.backgroundColor = TABLE_COLORS[10];
@@ -156,10 +154,8 @@ function renderStudyCard(num) {
     card.style.backgroundColor = TABLE_COLORS[num];
     document.getElementById('study-title').innerText = `Tabla del ${num}`;
 
-    // Control de navegación Anterior / Siguiente
     document.getElementById('btn-prev-table').disabled = (num === 1);
     document.getElementById('btn-next-table').disabled = (num === 10);
-
     document.getElementById('btn-check-next').disabled = true;
 
     list.innerHTML = '';
@@ -192,10 +188,43 @@ function revealNextAnswer() {
     if (revealIndex < 10) {
         revealIndex++;
         const num = selectedStudyTable;
+        const resultValue = num * revealIndex;
         const row = document.getElementById(`study-row-${revealIndex}`);
-        if (row) {
-            row.innerHTML = `${num} x ${revealIndex} = <span class="val-revealed">${num * revealIndex}</span>`;
-        }
+
+        if (!row) return;
+
+        const holder = row.querySelector('.val-revealed');
+        if (!holder) return;
+
+        // 1. Crear el elemento flotante en el centro
+        const flyEl = document.createElement('div');
+        flyEl.className = 'flying-number';
+        flyEl.innerText = resultValue;
+        document.body.appendChild(flyEl);
+
+        // 2. Calcular coordenadas del destino
+        const targetRect = holder.getBoundingClientRect();
+        const targetX = targetRect.left + (targetRect.width / 2) - (window.innerWidth / 2);
+        const targetY = targetRect.top + (targetRect.height / 2) - (window.innerHeight / 2);
+
+        flyEl.style.setProperty('--target-x', `${targetX}px`);
+        flyEl.style.setProperty('--target-y', `${targetY}px`);
+
+        // 3. Ejecutar animación
+        setTimeout(() => {
+            flyEl.classList.add('shrink');
+        }, 100);
+
+        // 4. Fijar resultado al terminar la animación
+        setTimeout(() => {
+            holder.innerText = resultValue;
+            holder.style.background = '#2ecc71';
+            holder.style.color = 'white';
+            if (flyEl.parentNode) {
+                flyEl.parentNode.removeChild(flyEl);
+            }
+        }, 600);
+
         if (revealIndex === 10) {
             document.getElementById('btn-check-next').disabled = true;
         }
@@ -223,7 +252,6 @@ async function toggleTableAudio() {
 
     const num = selectedStudyTable;
 
-    // Bucle infinito de reproducción
     while (isAudioReading) {
         for (let i = 1; i <= 10; i++) {
             if (!isAudioReading) break;
@@ -235,7 +263,6 @@ async function toggleTableAudio() {
         }
 
         if (!isAudioReading) break;
-        // Pausa de 2 segundos entre ciclo y ciclo
         await new Promise(res => setTimeout(res, 2000));
     }
 
@@ -251,7 +278,7 @@ function speakFastPromise(text) {
 
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'es-ES';
-        utterance.rate = 1.30; // Lectura rápida
+        utterance.rate = 1.30;
 
         utterance.onend = () => resolve();
         utterance.onerror = () => resolve();
@@ -345,12 +372,25 @@ function loadCard() {
     document.getElementById('btn-submit').disabled = true;
     document.getElementById('btn-next').disabled = true;
 
-    speakText(`${cardData.num1} por ${cardData.num2}`, () => {
+    const isVoiceEnabled = document.getElementById('voice-read-check').checked;
+    const isMicEnabled = document.getElementById('mic-listen-check').checked;
+
+    const startTurn = () => {
         if (document.getElementById('section-gameplay').classList.contains('active')) {
             startTimer();
-            startMicListening();
+            if (isMicEnabled) {
+                startMicListening();
+            } else {
+                document.getElementById('mic-status').innerText = '⌨️ Usar teclado';
+            }
         }
-    });
+    };
+
+    if (isVoiceEnabled) {
+        speakText(`${cardData.num1} por ${cardData.num2}`, startTurn);
+    } else {
+        startTurn();
+    }
 }
 
 function startTimer() {
@@ -373,9 +413,10 @@ function startTimer() {
 function enterGracePeriod() {
     isGracePeriod = true;
     document.getElementById('timer-display').innerText = "0";
-    document.getElementById('mic-status').innerText = '✍️ Transcribiendo...';
 
-    if (recognition) {
+    const isMicEnabled = document.getElementById('mic-listen-check').checked;
+    if (isMicEnabled && recognition) {
+        document.getElementById('mic-status').innerText = '✍️ Transcribiendo...';
         try { recognition.stop(); } catch (e) {}
     }
 
