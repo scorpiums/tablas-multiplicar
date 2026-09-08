@@ -1,13 +1,12 @@
 /* ==========================================================================
-   ¡TablaAventura! - Motor JavaScript con Tiempo de Gracia para Transcripción
+   ¡Tabla Aventura! - Lógica Completa y Mejorada
    ========================================================================== */
 
-const TABLE_COLORS = [
-    '#E74C3C', '#2ECC71', '#3498DB', '#E67E22', '#9B59B6',
-    '#F1C40F', '#E84393', '#00CEC9', '#D63031', '#00B894', '#6C5CE7'
-];
+const TABLE_COLORS = {
+    1: '#2ECC71', 2: '#3498DB', 3: '#E67E22', 4: '#9B59B6', 5: '#F1C40F',
+    6: '#E84393', 7: '#00CEC9', 8: '#D63031', 9: '#00B894', 10: '#6C5CE7'
+};
 
-// Gramática de traducción hablada a números enteros
 const SPANISH_DECENAS = {
     "diez": 10, "veinte": 20, "treinta": 30, "cuarenta": 40, "cincuenta": 50,
     "sesenta": 60, "setenta": 70, "ochenta": 80, "noventa": 90
@@ -25,8 +24,9 @@ const SPANISH_ESPECIALES = {
     "veintiseis": 26, "veintisiete": 27, "veintiocho": 28, "veintinueve": 29, "cien": 100
 };
 
-// Variables de Estado de Aplicación
+// Variables de Estado
 let selectedStudyTable = 1;
+let revealIndex = 0; // Para la función "Comprueba"
 let selectedPracticeTables = [];
 let difficultyTime = 10;
 let isAutoNextEnabled = false;
@@ -38,7 +38,7 @@ let autoNextTimeout = null;
 let speechDebounceTimer = null;
 let gracePeriodTimeout = null;
 let timeLeft = 0;
-let isGracePeriod = false; // Control de fase de gracia
+let isGracePeriod = false;
 
 let recognition = null;
 let audioCtx = null;
@@ -47,9 +47,6 @@ let isAudioReading = false;
 let matchHistory = [];
 let failedCards = [];
 
-/* ==========================================
-   INICIALIZACIÓN Y GESTIÓN DE AUDIO
-   ========================================== */
 document.addEventListener('DOMContentLoaded', () => {
     initStudySection();
     initGameSetupSection();
@@ -68,7 +65,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', enableAudioContext, { passive: true });
 });
 
-// Limpieza total del sistema al cambiar de pantalla
 function fullResetState() {
     isAudioReading = false;
     isGracePeriod = false;
@@ -102,26 +98,43 @@ function switchSection(sectionId) {
 }
 
 /* ==========================================
-   1. MÓDULO DE ESTUDIO
+   1. SECCIÓN ESTUDIAR TABLAS
    ========================================== */
 function initStudySection() {
     const navContainer = document.getElementById('learn-buttons');
     navContainer.innerHTML = '';
 
-    for (let i = 0; i <= 10; i++) {
+    // Botones del 1 al 9
+    for (let i = 1; i <= 9; i++) {
         const btn = document.createElement('button');
         btn.className = 'btn-table-select';
         btn.style.backgroundColor = TABLE_COLORS[i];
-        btn.innerText = `Tabla ${i}`;
+        btn.innerText = i;
         btn.onclick = () => selectStudyTable(i);
         navContainer.appendChild(btn);
     }
+
+    // Botón 10 Ancho Completo
+    const btn10 = document.createElement('button');
+    btn10.className = 'btn-table-select btn-table-10';
+    btn10.style.backgroundColor = TABLE_COLORS[10];
+    btn10.innerText = 'Tabla del 10';
+    btn10.onclick = () => selectStudyTable(10);
+    navContainer.appendChild(btn10);
 }
 
 function selectStudyTable(num) {
     selectedStudyTable = num;
-    renderStudyContent(num);
-    showLearnStep('complete');
+    renderStudyCard(num);
+    showLearnStep('study');
+}
+
+function changeStudyTable(delta) {
+    stopTableAudio();
+    const newTable = selectedStudyTable + delta;
+    if (newTable >= 1 && newTable <= 10) {
+        selectStudyTable(newTable);
+    }
 }
 
 function showLearnStep(step) {
@@ -130,43 +143,63 @@ function showLearnStep(step) {
 
     if (step === 'selector') {
         document.getElementById('learn-step-selector').classList.add('active');
-    } else if (step === 'complete') {
-        document.getElementById('learn-step-complete').classList.add('active');
-    } else if (step === 'practice') {
-        document.getElementById('learn-step-practice').classList.add('active');
+    } else if (step === 'study') {
+        document.getElementById('learn-step-study').classList.add('active');
     }
 }
 
-function renderStudyContent(num) {
-    const listComplete = document.getElementById('list-complete');
-    const listPractice = document.getElementById('list-practice');
+function renderStudyCard(num) {
+    revealIndex = 0;
+    const card = document.getElementById('card-study-container');
+    const list = document.getElementById('list-study');
 
-    document.getElementById('complete-title').innerText = `Tabla del ${num}`;
-    document.getElementById('practice-title').innerText = `Pruébate: Tabla del ${num}`;
+    card.style.backgroundColor = TABLE_COLORS[num];
+    document.getElementById('study-title').innerText = `Tabla del ${num}`;
 
-    document.getElementById('card-complete-container').style.borderColor = TABLE_COLORS[num];
-    document.getElementById('card-practice-container').style.borderColor = TABLE_COLORS[num];
+    // Control de navegación Anterior / Siguiente
+    document.getElementById('btn-prev-table').disabled = (num === 1);
+    document.getElementById('btn-next-table').disabled = (num === 10);
 
-    listComplete.innerHTML = '';
-    listPractice.innerHTML = '';
+    document.getElementById('btn-check-next').disabled = true;
 
-    for (let i = 0; i <= 10; i++) {
-        const liFull = document.createElement('li');
-        liFull.innerHTML = `${num} x ${i} = <strong>${num * i}</strong>`;
-        listComplete.appendChild(liFull);
-
-        const liEmpty = document.createElement('li');
-        liEmpty.innerHTML = `${num} x ${i} = <span class="answer-holder" style="color:${TABLE_COLORS[num]}">?</span>`;
-        liEmpty.dataset.val = num * i;
-        listPractice.appendChild(liEmpty);
+    list.innerHTML = '';
+    for (let i = 1; i <= 10; i++) {
+        const li = document.createElement('li');
+        li.id = `study-row-${i}`;
+        li.innerHTML = `${num} x ${i} = <strong>${num * i}</strong>`;
+        list.appendChild(li);
     }
 }
 
-function togglePracticeAnswers() {
-    const holders = document.querySelectorAll('.answer-holder');
-    holders.forEach(h => {
-        h.innerText = (h.innerText === '?') ? h.parentElement.dataset.val : '?';
-    });
+function startSelfTest() {
+    stopTableAudio();
+    revealIndex = 0;
+    const num = selectedStudyTable;
+    const list = document.getElementById('list-study');
+
+    list.innerHTML = '';
+    for (let i = 1; i <= 10; i++) {
+        const li = document.createElement('li');
+        li.id = `study-row-${i}`;
+        li.innerHTML = `${num} x ${i} = <span class="val-revealed">?</span>`;
+        list.appendChild(li);
+    }
+
+    document.getElementById('btn-check-next').disabled = false;
+}
+
+function revealNextAnswer() {
+    if (revealIndex < 10) {
+        revealIndex++;
+        const num = selectedStudyTable;
+        const row = document.getElementById(`study-row-${revealIndex}`);
+        if (row) {
+            row.innerHTML = `${num} x ${revealIndex} = <span class="val-revealed">${num * revealIndex}</span>`;
+        }
+        if (revealIndex === 10) {
+            document.getElementById('btn-check-next').disabled = true;
+        }
+    }
 }
 
 function stopTableAudio() {
@@ -190,29 +223,35 @@ async function toggleTableAudio() {
 
     const num = selectedStudyTable;
 
-    for (let i = 0; i <= 10; i++) {
-        if (!isAudioReading) break;
+    // Bucle infinito de reproducción
+    while (isAudioReading) {
+        for (let i = 1; i <= 10; i++) {
+            if (!isAudioReading) break;
 
-        const textToSpeak = `${num} por ${i}... ${num * i}`;
-        await speakPromise(textToSpeak);
+            const textToSpeak = `${num} por ${i}... ${num * i}`;
+            await speakFastPromise(textToSpeak);
+
+            if (!isAudioReading) break;
+        }
 
         if (!isAudioReading) break;
-        await new Promise(res => setTimeout(res, 400));
+        // Pausa de 2 segundos entre ciclo y ciclo
+        await new Promise(res => setTimeout(res, 2000));
     }
 
     stopTableAudio();
 }
 
-function speakPromise(text) {
+function speakFastPromise(text) {
     return new Promise((resolve) => {
-        if (!('speechSynthesis' in window)) {
+        if (!('speechSynthesis' in window) || !isAudioReading) {
             resolve();
             return;
         }
 
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'es-ES';
-        utterance.rate = 0.95;
+        utterance.rate = 1.30; // Lectura rápida
 
         utterance.onend = () => resolve();
         utterance.onerror = () => resolve();
@@ -222,13 +261,13 @@ function speakPromise(text) {
 }
 
 /* ==========================================
-   2. CONFIGURACIÓN DEL JUEGO
+   2. CONFIGURACIÓN MODO REPASO
    ========================================== */
 function initGameSetupSection() {
     const container = document.getElementById('tables-selection');
     container.innerHTML = '';
 
-    for (let i = 0; i <= 10; i++) {
+    for (let i = 1; i <= 10; i++) {
         const label = document.createElement('label');
         label.className = 'tbl-check';
         label.style.backgroundColor = TABLE_COLORS[i];
@@ -252,7 +291,7 @@ function toggleTableSelection(checkbox, num) {
 }
 
 /* ==========================================
-   3. BUCLE PRINCIPAL DE JUEGO
+   3. MODO REPASO / JUEGO
    ========================================== */
 function startGame() {
     if (selectedPracticeTables.length === 0) {
@@ -262,15 +301,20 @@ function startGame() {
 
     difficultyTime = parseInt(document.querySelector('input[name="difficulty"]:checked').value);
     isAutoNextEnabled = document.getElementById('auto-next-check').checked;
+    const playOrder = document.querySelector('input[name="play-order"]:checked').value;
     
     currentDeck = [];
+    selectedPracticeTables.sort((a,b) => a - b);
+
     selectedPracticeTables.forEach(table => {
-        for (let i = 0; i <= 10; i++) {
+        for (let i = 1; i <= 10; i++) {
             currentDeck.push({ table, num1: table, num2: i, answer: table * i });
         }
     });
 
-    currentDeck.sort(() => Math.random() - 0.5);
+    if (playOrder === 'random') {
+        currentDeck.sort(() => Math.random() - 0.5);
+    }
 
     currentCardIndex = 0;
     matchHistory = [];
@@ -321,23 +365,20 @@ function startTimer() {
         } else {
             clearInterval(timerInterval);
             timerInterval = null;
-            enterGracePeriod(); // Entrar en tiempo de gracia al llegar a 0s
+            enterGracePeriod();
         }
     }, 1000);
 }
 
-// Entrar en tiempo de gracia de transcripción
 function enterGracePeriod() {
     isGracePeriod = true;
     document.getElementById('timer-display').innerText = "0";
     document.getElementById('mic-status').innerText = '✍️ Transcribiendo...';
 
-    // Pedir al reconocedor que detenga la grabación y procese el búfer de audio restante
     if (recognition) {
         try { recognition.stop(); } catch (e) {}
     }
 
-    // Timeout de seguridad: si pasados 1.5s no se ha transcrito nada, evaluar vacia
     gracePeriodTimeout = setTimeout(() => {
         if (isGracePeriod) {
             isGracePeriod = false;
@@ -490,7 +531,6 @@ function startMicListening() {
                 document.getElementById('user-input').value = parsedNumber;
                 document.getElementById('btn-submit').disabled = false;
 
-                // Si se transcribió dentro del tiempo de gracia, validar automáticamente
                 if (isGracePeriod) {
                     isGracePeriod = false;
                     submitAnswer(false);
@@ -548,16 +588,16 @@ function playAudioFeedback(isCorrect) {
 
         if (isCorrect) {
             osc.type = 'sine';
-            osc.frequency.setValueAtTime(523.25, now);      // Do5
-            osc.frequency.setValueAtTime(659.25, now + 0.1); // Mi5
+            osc.frequency.setValueAtTime(523.25, now);
+            osc.frequency.setValueAtTime(659.25, now + 0.1);
             gain.gain.setValueAtTime(0.3, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
             osc.start(now);
             osc.stop(now + 0.35);
         } else {
             osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(220, now);        // La3
-            osc.frequency.setValueAtTime(180, now + 0.15);  // Fa3
+            osc.frequency.setValueAtTime(220, now);
+            osc.frequency.setValueAtTime(180, now + 0.15);
             gain.gain.setValueAtTime(0.3, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
             osc.start(now);
@@ -611,7 +651,6 @@ function finishGame() {
 
 function retryFailedOnly() {
     currentDeck = [...failedCards];
-    currentDeck.sort(() => Math.random() - 0.5);
     
     currentCardIndex = 0;
     matchHistory = [];
@@ -620,4 +659,3 @@ function retryFailedOnly() {
     switchSection('gameplay');
     loadCard();
 }
-   
