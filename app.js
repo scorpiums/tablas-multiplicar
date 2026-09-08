@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ¡Tabla Aventura! - Lógica Completa con Animación y Opciones de Audio
+   ¡Tabla Aventura! - Código Completo Actualizado
    ========================================================================== */
 
 const TABLE_COLORS = {
@@ -27,6 +27,9 @@ const SPANISH_ESPECIALES = {
 // Variables de Estado
 let selectedStudyTable = 1;
 let revealIndex = 0;
+let isTestModeActive = false;
+let isAnimatingCheck = false;
+
 let selectedPracticeTables = [];
 let difficultyTime = 10;
 let isAutoNextEnabled = false;
@@ -68,6 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function fullResetState() {
     isAudioReading = false;
     isGracePeriod = false;
+    isAnimatingCheck = false;
 
     if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
     if (autoNextTimeout) { clearTimeout(autoNextTimeout); autoNextTimeout = null; }
@@ -148,8 +152,11 @@ function showLearnStep(step) {
 
 function renderStudyCard(num) {
     revealIndex = 0;
+    isTestModeActive = false;
+
     const card = document.getElementById('card-study-container');
     const list = document.getElementById('list-study');
+    const testBtn = document.getElementById('btn-mode-test');
 
     card.style.backgroundColor = TABLE_COLORS[num];
     document.getElementById('study-title').innerText = `Tabla del ${num}`;
@@ -157,6 +164,9 @@ function renderStudyCard(num) {
     document.getElementById('btn-prev-table').disabled = (num === 1);
     document.getElementById('btn-next-table').disabled = (num === 10);
     document.getElementById('btn-check-next').disabled = true;
+
+    testBtn.innerText = '🎯 Pruébate';
+    testBtn.classList.remove('active-mode');
 
     list.innerHTML = '';
     for (let i = 1; i <= 10; i++) {
@@ -167,68 +177,94 @@ function renderStudyCard(num) {
     }
 }
 
-function startSelfTest() {
+function toggleTestMode() {
     stopTableAudio();
-    revealIndex = 0;
     const num = selectedStudyTable;
-    const list = document.getElementById('list-study');
+    const testBtn = document.getElementById('btn-mode-test');
+    const checkBtn = document.getElementById('btn-check-next');
 
-    list.innerHTML = '';
-    for (let i = 1; i <= 10; i++) {
-        const li = document.createElement('li');
-        li.id = `study-row-${i}`;
-        li.innerHTML = `${num} x ${i} = <span class="val-revealed">?</span>`;
-        list.appendChild(li);
+    if (!isTestModeActive) {
+        // Activar modo prueba
+        isTestModeActive = true;
+        revealIndex = 0;
+        testBtn.innerText = '📖 Mostrar Tabla';
+        testBtn.classList.add('active-mode');
+        checkBtn.disabled = false;
+
+        const list = document.getElementById('list-study');
+        list.innerHTML = '';
+        for (let i = 1; i <= 10; i++) {
+            const li = document.createElement('li');
+            li.id = `study-row-${i}`;
+            li.innerHTML = `${num} x ${i} = <span class="val-revealed">?</span>`;
+            list.appendChild(li);
+        }
+    } else {
+        // Restaurar tabla completa
+        renderStudyCard(num);
     }
-
-    document.getElementById('btn-check-next').disabled = false;
 }
 
 function revealNextAnswer() {
-    if (revealIndex < 10) {
-        revealIndex++;
-        const num = selectedStudyTable;
-        const resultValue = num * revealIndex;
-        const row = document.getElementById(`study-row-${revealIndex}`);
+    if (isAnimatingCheck || revealIndex >= 10) return;
 
-        if (!row) return;
+    revealIndex++;
+    isAnimatingCheck = true;
+    const num = selectedStudyTable;
+    const resultValue = num * revealIndex;
 
-        const holder = row.querySelector('.val-revealed');
-        if (!holder) return;
+    const row = document.getElementById(`study-row-${revealIndex}`);
+    const list = document.getElementById('list-study');
+    const checkBtn = document.getElementById('btn-check-next');
+    checkBtn.disabled = true;
 
-        // 1. Crear el elemento flotante en el centro
-        const flyEl = document.createElement('div');
-        flyEl.className = 'flying-number';
-        flyEl.innerText = resultValue;
-        document.body.appendChild(flyEl);
+    if (!row || !list) return;
 
-        // 2. Calcular coordenadas del destino
-        const targetRect = holder.getBoundingClientRect();
-        const targetX = targetRect.left + (targetRect.width / 2) - (window.innerWidth / 2);
-        const targetY = targetRect.top + (targetRect.height / 2) - (window.innerHeight / 2);
+    const holder = row.querySelector('.val-revealed');
 
-        flyEl.style.setProperty('--target-x', `${targetX}px`);
-        flyEl.style.setProperty('--target-y', `${targetY}px`);
+    // 1. Crear número flotante en el centro de la lista
+    const flyEl = document.createElement('div');
+    flyEl.className = 'flying-number';
+    flyEl.innerText = resultValue;
+    list.appendChild(flyEl);
 
-        // 3. Ejecutar animación
+    // 2. Calcular coordenadas del destino respecto al contenedor
+    const listRect = list.getBoundingClientRect();
+    const targetRect = holder.getBoundingClientRect();
+
+    const targetX = (targetRect.left + targetRect.width / 2) - (listRect.left + listRect.width / 2);
+    const targetY = (targetRect.top + targetRect.height / 2) - (listRect.top + listRect.height / 2);
+
+    flyEl.style.setProperty('--target-x', `${targetX}px`);
+    flyEl.style.setProperty('--target-y', `${targetY}px`);
+
+    // Fase 1: Muestra en grande durante 1000ms
+    setTimeout(() => {
+        // Fase 2: Encogerse en el centro (350ms)
+        flyEl.classList.add('step-shrink');
+
         setTimeout(() => {
-            flyEl.classList.add('shrink');
-        }, 100);
+            // Fase 3: Desplazamiento a su casilla (350ms)
+            flyEl.classList.add('step-move');
 
-        // 4. Fijar resultado al terminar la animación
-        setTimeout(() => {
-            holder.innerText = resultValue;
-            holder.style.background = '#2ecc71';
-            holder.style.color = 'white';
-            if (flyEl.parentNode) {
-                flyEl.parentNode.removeChild(flyEl);
-            }
-        }, 600);
+            setTimeout(() => {
+                // Finalizar: Fijar respuesta neutra y eliminar el elemento flotante
+                holder.innerText = resultValue;
+                holder.classList.add('highlight');
+                
+                setTimeout(() => holder.classList.remove('highlight'), 1000);
 
-        if (revealIndex === 10) {
-            document.getElementById('btn-check-next').disabled = true;
-        }
-    }
+                if (flyEl.parentNode) {
+                    flyEl.parentNode.removeChild(flyEl);
+                }
+
+                isAnimatingCheck = false;
+                if (revealIndex < 10) {
+                    checkBtn.disabled = false;
+                }
+            }, 350);
+        }, 350);
+    }, 1000);
 }
 
 function stopTableAudio() {
