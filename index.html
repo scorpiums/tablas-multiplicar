@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>¡TablaAventura! - Aprende las Tablas de Multiplicar</title>
+    <title>¡Tabla Aventura! - Aprende las Tablas de Multiplicar</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
     <header class="app-header">
-        <h1>✨ ¡TablaAventura! ✨</h1>
+        <h1>✨ ¡Tabla Aventura! ✨</h1>
         <nav class="nav-buttons-container">
             <button id="nav-learn" class="btn-nav active" onclick="switchSection('learn')">📖 Estudiar Tablas</button>
             <button id="nav-game" class="btn-nav" onclick="switchSection('game-setup')">🎮 Modo Repaso</button>
@@ -20,34 +20,28 @@
     <main class="container">
         <!-- SECCIÓN 1: APRENDER TABLAS -->
         <section id="section-learn" class="section active">
+            <!-- Vista 1: Selector de Tablas (1-9 en grid, 10 ancho completo) -->
             <div id="learn-step-selector" class="learn-subview active">
                 <h2>Selecciona una tabla</h2>
                 <div class="table-selector-grid" id="learn-buttons"></div>
             </div>
 
-            <div id="learn-step-complete" class="learn-subview">
-                <div class="study-card-full" id="card-complete-container">
+            <!-- Vista 2: Tabla y Modo Prueba -->
+            <div id="learn-step-study" class="learn-subview">
+                <div class="study-card-full" id="card-study-container">
                     <div class="card-header-actions">
-                        <h2 id="complete-title">Tabla del 1</h2>
-                        <div class="audio-controls">
-                            <button id="btn-audio-single" class="btn-audio-speed" onclick="toggleTableAudio()">🔊 Escuchar</button>
-                        </div>
+                        <button class="btn-back-header" onclick="stopTableAudio(); showLearnStep('selector');">⬅️ Volver</button>
+                        <h2 id="study-title">Tabla del 1</h2>
+                        <button id="btn-audio-single" class="btn-audio-speed" onclick="toggleTableAudio()">🔊 Escuchar</button>
                     </div>
-                    <ul id="list-complete" class="table-list"></ul>
-                    <div class="nav-actions">
-                        <button class="btn-action btn-secondary" onclick="stopTableAudio(); showLearnStep('selector');">⬅️ Volver</button>
-                        <button class="btn-action" onclick="stopTableAudio(); showLearnStep('practice');">🎯 Pruébate ➡️</button>
-                    </div>
-                </div>
-            </div>
-
-            <div id="learn-step-practice" class="learn-subview">
-                <div class="study-card-full" id="card-practice-container">
-                    <h2 id="practice-title">Pruébate: Tabla del 1</h2>
-                    <ul id="list-practice" class="table-list"></ul>
-                    <div class="nav-actions">
-                        <button class="btn-action btn-secondary" onclick="showLearnStep('selector')">⬅️ Volver</button>
-                        <button class="btn-action" onclick="togglePracticeAnswers()">👁️ Ver Respuestas</button>
+                    
+                    <ul id="list-study" class="table-list"></ul>
+                    
+                    <div class="nav-actions-grid">
+                        <button id="btn-mode-test" class="btn-action btn-test" onclick="startSelfTest()">🎯 Pruébate</button>
+                        <button id="btn-check-next" class="btn-action btn-check" onclick="revealNextAnswer()" disabled>👁️ Comprueba</button>
+                        <button id="btn-prev-table" class="btn-action btn-secondary" onclick="changeStudyTable(-1)">⬅️ Anterior</button>
+                        <button id="btn-next-table" class="btn-action btn-secondary" onclick="changeStudyTable(1)">Siguiente ➡️</button>
                     </div>
                 </div>
             </div>
@@ -88,6 +82,17 @@
 
                 <p class="section-label">3. Opciones de juego:</p>
                 <div class="options-container">
+                    <div class="order-selector">
+                        <label class="order-btn">
+                            <input type="radio" name="play-order" value="ordered" checked>
+                            <span class="order-card">📌 En orden</span>
+                        </label>
+                        <label class="order-btn">
+                            <input type="radio" name="play-order" value="random">
+                            <span class="order-card">🔀 Aleatorio</span>
+                        </label>
+                    </div>
+
                     <label class="auto-next-option">
                         <input type="checkbox" id="auto-next-check">
                         <span>⚡ Pasar automáticamente de pregunta al responder</span>
