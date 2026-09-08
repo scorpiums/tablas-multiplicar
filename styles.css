@@ -84,7 +84,7 @@ body {
     display: block;
 }
 
-/* SELECTOR DE TABLAS (3x3 + 10 Ancho completo) */
+/* SELECTOR DE TABLAS */
 .table-selector-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -117,6 +117,7 @@ body {
 
 /* CARD DE ESTUDIO Y PRUEBA */
 .study-card-full {
+    position: relative;
     background: white;
     padding: 12px 16px;
     border-radius: 20px;
@@ -176,8 +177,9 @@ body {
     100% { transform: scale(1.08); }
 }
 
-/* TABLA EN 2 COLUMNAS (1-5 a la izquierda, 6-10 a la derecha) */
+/* TABLA EN 2 COLUMNAS */
 .table-list {
+    position: relative;
     list-style: none;
     padding: 10px;
     margin: 0 0 10px 0;
@@ -206,7 +208,13 @@ body {
     padding: 1px 8px;
     border-radius: 8px;
     display: inline-block;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.val-revealed.highlight {
+    border-color: #546de5;
+    box-shadow: 0 0 8px rgba(84, 109, 229, 0.5);
 }
 
 .nav-actions-grid {
@@ -227,6 +235,7 @@ body {
 }
 
 .btn-test { background: #e67e22; color: white; }
+.btn-test.active-mode { background: #34495e; color: white; }
 .btn-check { background: #2ecc71; color: white; }
 .btn-secondary { background: rgba(255,255,255,0.3); color: white; }
 
@@ -236,28 +245,32 @@ body {
     box-shadow: none;
 }
 
-/* NÚMERO GIGANTE FLOTANTE (ANIMACIÓN "COMPRUEBA") */
+/* NÚMERO FLOTANTE PARA "COMPRUEBA" (ANIMACIÓN EN 3 TIEMPOS) */
 .flying-number {
-    position: fixed;
+    position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%) scale(1);
-    font-size: 4.5rem;
+    font-size: 3.5rem;
     font-weight: bold;
     color: #2c3e50;
     background: #ffffff;
-    border: 4px solid #f1c40f;
-    border-radius: 20px;
-    padding: 10px 25px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-    z-index: 9999;
+    border: 4px solid #546de5;
+    border-radius: 18px;
+    padding: 8px 22px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+    z-index: 100;
     pointer-events: none;
-    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s ease;
 }
 
-.flying-number.shrink {
-    opacity: 0.8;
+.flying-number.step-shrink {
+    transform: translate(-50%, -50%) scale(0.3);
+}
+
+.flying-number.step-move {
     transform: translate(var(--target-x), var(--target-y)) scale(0.25);
+    opacity: 0.9;
 }
 
 /* CONFIGURACIÓN REPASO */
